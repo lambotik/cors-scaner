@@ -25,5 +25,8 @@ jobs:
       run: |
         pytest || echo "Нет тестов — пропускаем"
 
-    - name: Deploy to Render (или другой хостинг)
-      run: echo "Здесь будет деплой — можно использовать SSH, Docker, или Render CLI"
+    - name: Deploy to Render
+      run: |
+        curl -X POST https://api.render.com/v1/services/YOUR_SERVICE_ID/deploy \
+          -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}"
+    
