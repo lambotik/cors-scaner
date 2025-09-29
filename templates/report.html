@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Отчёт безопасности - CORS-сканер</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkYAACAAAf//BA0YpZ4AAAAASUVORK5CYII=">
     <style>
         /* Сохраняем существующие стили и добавляем новые */
         body {
@@ -320,8 +320,22 @@
         <div class="info-card">
             <strong>📈 Сводка безопасности</strong>
             Общая оценка: {{ security_score }}%<br>
-            Критических проблем: {{ issues|select("match", ".*🚨.*|.*КРИТИЧЕСКО.*")|list|length }}<br>
-            Рекомендаций: {{ headers|selectattr("warnings")|map(attribute="warnings")|sum|length }}
+            {% set critical_count = [] %}
+            {% for issue in issues %}
+                {% if '🚨' in issue or 'КРИТИЧЕСКО' in issue %}
+                    {% if critical_count.append(1) %}{% endif %}
+                {% endif %}
+            {% endfor %}
+            Критических проблем: {{ critical_count|length }}<br>
+            {% set warning_count = [] %}
+            {% for header in headers %}
+                {% if header.warnings %}
+                    {% for warning in header.warnings %}
+                        {% if warning_count.append(1) %}{% endif %}
+                    {% endfor %}
+                {% endif %}
+            {% endfor %}
+            Рекомендаций: {{ warning_count|length }}
         </div>
     </div>
     {% endif %}
