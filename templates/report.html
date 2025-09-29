@@ -51,6 +51,25 @@
         .score-medium { color: var(--warning); }
         .score-low { color: var(--danger); }
 
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            margin: 15px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-high { background: var(--success); }
+        .progress-medium { background: var(--warning); }
+        .progress-low { background: var(--danger); }
+
         .info-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -103,44 +122,6 @@
             border: 1px solid #e2e8f0;
         }
 
-        .category-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            margin-left: 8px;
-            text-transform: uppercase;
-        }
-
-        .category-cors {
-            background: #f3e8ff;
-            color: var(--cors-color);
-            border: 1px solid #ddd6fe;
-        }
-
-        .category-security {
-            background: #fef2f2;
-            color: var(--security-color);
-            border: 1px solid #fecaca;
-        }
-
-        .category-privacy {
-            background: #f0f9ff;
-            color: var(--privacy-color);
-            border: 1px solid #bae6fd;
-        }
-
-        .critical-badge {
-            background: var(--danger);
-            color: white;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-size: 0.7rem;
-            margin-left: 8px;
-            vertical-align: middle;
-        }
-
         .section-title {
             font-size: 1.5rem;
             color: var(--gray-800);
@@ -149,64 +130,56 @@
             border-bottom: 2px solid var(--gray-200);
         }
 
-        .category-section {
-            margin: 30px 0;
-            padding: 20px;
+        .header-detail {
+            background: white;
+            border: 1px solid var(--gray-200);
             border-radius: 8px;
-            background: #f8fafc;
+            padding: 20px;
+            margin: 15px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
 
-        .category-title {
-            font-size: 1.3rem;
+        .header-name {
+            font-size: 1.2rem;
+            font-weight: 600;
             margin-bottom: 15px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .headers-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .headers-table th {
-            background: #f8fafc;
-            padding: 16px 20px;
-            text-align: left;
-            font-weight: 600;
-            color: var(--gray-800);
-            border-bottom: 2px solid var(--gray-200);
-            font-size: 0.9rem;
-        }
-
-        .headers-table td {
-            padding: 16px 20px;
-            border-bottom: 1px solid var(--gray-200);
-            vertical-align: top;
-        }
-
-        .status-present {
+        .header-status-present {
             color: var(--success);
             font-weight: 600;
         }
 
-        .status-missing {
+        .header-status-missing {
             color: var(--danger);
             font-weight: 600;
+        }
+
+        .header-property {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+
+        .header-property:before {
+            content: "└─";
+            position: absolute;
+            left: 0;
+            color: var(--gray-600);
         }
 
         .header-value {
             font-family: 'Courier New', monospace;
             background: #f1f5f9;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.85rem;
+            padding: 8px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            margin: 5px 0;
             word-break: break-word;
+            font-size: 0.9rem;
         }
 
         .risk-badge {
@@ -233,6 +206,33 @@
             background: #f0fdf4;
             color: var(--success);
             border: 1px solid #bbf7d0;
+        }
+
+        .warning-item {
+            background: #fffbeb;
+            border-left: 3px solid var(--warning);
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .recommendation-item {
+            background: #f0fdf4;
+            border-left: 3px solid var(--success);
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
+        }
+
+        .info-item-small {
+            background: #f0f9ff;
+            border-left: 3px solid var(--primary);
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 0 4px 4px 0;
+            font-size: 0.9rem;
         }
 
         .issues-section {
@@ -285,21 +285,38 @@
             background: #1d4ed8;
         }
 
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid var(--gray-200);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 10px;
             }
-
-            .headers-table {
-                font-size: 0.9rem;
-            }
-
-            .headers-table th,
-            .headers-table td {
-                padding: 12px 8px;
-            }
-
-            .info-grid {
+            .info-grid, .stats-grid {
                 grid-template-columns: 1fr;
             }
         }
@@ -311,11 +328,18 @@
         <h1>🔐 Отчёт безопасности HTTP-заголовков</h1>
     </div>
 
-    <!-- Score Section -->
+    <!-- Score Section with Progress Bar -->
     <div class="score-section">
-        <div class="score-display score-medium">
+        <div class="score-display score-{% if security_score >= 80 %}high{% elif security_score >= 60 %}medium{% else %}low{% endif %}">
             {{ security_score }}%
         </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-bar">
+            <div class="progress-fill progress-{% if security_score >= 80 %}high{% elif security_score >= 60 %}medium{% else %}low{% endif %}"
+                 style="width: {{ security_score }}%"></div>
+        </div>
+
         <div class="score-label">
             {% if security_score >= 80 %}
                 🟢 Отличная безопасность
@@ -332,6 +356,29 @@
     <div class="url-container">
         <div class="url-label">🎯 Цель сканирования</div>
         <div class="url-value">{{ target }}</div>
+        <div style="margin-top: 10px; font-size: 0.9rem; color: var(--gray-600);">
+            Финальный URL: {{ final_url }} | HTTP статус: {{ http_status }}
+        </div>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-number">{{ present_headers }}/{{ total_headers }}</div>
+            <div class="stat-label">📋 Заголовков настроено</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ critical_headers_present }}</div>
+            <div class="stat-label">🔴 Критических присутствует</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ issues|length }}</div>
+            <div class="stat-label">⚠️ Проблем обнаружено</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">{{ scan_duration }}с</div>
+            <div class="stat-label">⏱️ Длительность сканирования</div>
+        </div>
     </div>
 
     <!-- Scan Information -->
@@ -341,206 +388,110 @@
             <span class="info-value">{{ date }}</span>
         </div>
         <div class="info-item">
-            <span class="info-label">⏱️ Длительность</span>
-            <span class="info-value">{{ scan_duration }} секунд</span>
+            <span class="info-label">🔄 Редиректы</span>
+            <span class="info-value">{% if redirected %}Да{% else %}Нет{% endif %}</span>
         </div>
+        {% if server_info.server %}
         <div class="info-item">
-            <span class="info-label">🔍 Проверено заголовков</span>
-            <span class="info-value">{{ present_headers }}/{{ total_headers }}</span>
+            <span class="info-label">🖥️ Сервер</span>
+            <span class="info-value">{{ server_info.server }}</span>
         </div>
+        {% endif %}
+        {% if server_info.x_powered_by %}
         <div class="info-item">
-            <span class="info-label">⚡ HTTP статус</span>
-            <span class="info-value">{{ http_status }}</span>
+            <span class="info-label">⚡ X-Powered-By</span>
+            <span class="info-value">{{ server_info.x_powered_by }}</span>
         </div>
+        {% endif %}
     </div>
 
-    <!-- Critical Security Headers -->
-    <div class="category-section" style="background: #fef2f2; border-left: 4px solid var(--danger);">
-        <div class="category-title">
-            <span>🛡️ КРИТИЧЕСКИЕ ЗАГОЛОВКИ БЕЗОПАСНОСТИ</span>
-            <span class="category-badge category-security">Безопасность</span>
-        </div>
-        <p style="margin: 0 0 15px 0; color: var(--gray-600); font-size: 0.95rem;">
-            Наиболее важные заголовки для защиты от основных веб-угроз
-        </p>
+    <!-- Detailed Headers Analysis -->
+    <h2 class="section-title">🛡️ Детальный анализ заголовков</h2>
 
-        <table class="headers-table">
-            <thead>
-                <tr>
-                    <th>Заголовок</th>
-                    <th>Статус</th>
-                    <th>Значение</th>
-                    <th>Уровень риска</th>
-                    <th>Важность</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for header in headers %}
-                {% if header.critical and 'CORS' not in header.name %}
-                <tr>
-                    <td style="font-weight: 600;">
-                        {{ header.name }}
-                    </td>
-                    <td>
-                        {% if header.present %}
-                        <span class="status-present">✅ Присутствует</span>
-                        {% else %}
-                        <span class="status-missing">❌ Отсутствует</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if header.present %}
-                        <code class="header-value">{{ header.value|default('—', true)|truncate(40) }}</code>
-                        {% else %}
-                        <span>—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="risk-badge risk-{{ header.risk|lower }}">
-                            {% if header.risk == 'Высокий' %}
-                                Высокий риск
-                            {% elif header.risk == 'Средний' %}
-                                Средний риск
-                            {% else %}
-                                Низкий риск
-                            {% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <span style="color: var(--danger); font-weight: 600;">🔴 Критический</span>
-                    </td>
-                </tr>
+    {% for header in headers %}
+    <div class="header-detail">
+        <div class="header-name">
+            {% if header.present %}
+            ✅ {{ header.name }}
+            {% else %}
+            ❌ {{ header.name }}
+            {% endif %}
+            {% if header.critical %}
+            <span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; margin-left: 8px;">
+                КРИТ
+            </span>
+            {% endif %}
+        </div>
+
+        <div class="header-property">
+            <strong>Статус:</strong>
+            <span class="{% if header.present %}header-status-present{% else %}header-status-missing{% endif %}">
+                {% if header.present %}ПРИСУТСТВУЕТ{% else %}ОТСУТСТВУЕТ{% endif %}
+            </span>
+        </div>
+
+        <div class="header-property">
+            <strong>Риск:</strong>
+            <span class="risk-badge risk-{{ header.risk|lower }}">
+                {% if header.risk == 'Высокий' %}
+                    Высокий риск
+                {% elif header.risk == 'Средний' %}
+                    Средний риск
+                {% else %}
+                    Низкий риск
                 {% endif %}
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- CORS Headers -->
-    <div class="category-section" style="background: #faf5ff; border-left: 4px solid var(--cors-color);">
-        <div class="category-title">
-            <span>🌐 CORS ЗАГОЛОВКИ</span>
-            <span class="category-badge category-cors">CORS</span>
+            </span>
         </div>
-        <p style="margin: 0 0 15px 0; color: var(--gray-600); font-size: 0.95rem;">
-            Контроль доступа к ресурсам с других доменов (Cross-Origin Resource Sharing)
-        </p>
 
-        <table class="headers-table">
-            <thead>
-                <tr>
-                    <th>Заголовок</th>
-                    <th>Статус</th>
-                    <th>Значение</th>
-                    <th>Уровень риска</th>
-                    <th>Важность</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for header in headers %}
-                {% if 'CORS' in header.name or 'Access-Control' in header.name %}
-                <tr>
-                    <td style="font-weight: 600;">{{ header.name }}</td>
-                    <td>
-                        {% if header.present %}
-                        <span class="status-present">✅ Присутствует</span>
-                        {% else %}
-                        <span class="status-missing">❌ Отсутствует</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if header.present %}
-                        <code class="header-value">{{ header.value|default('—', true)|truncate(40) }}</code>
-                        {% else %}
-                        <span>—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="risk-badge risk-{{ header.risk|lower }}">
-                            {% if header.risk == 'Высокий' %}
-                                Высокий риск
-                            {% elif header.risk == 'Средний' %}
-                                Средний риск
-                            {% else %}
-                                Низкий риск
-                            {% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        {% if header.critical %}
-                        <span style="color: var(--danger); font-weight: 600;">🔴 Критический</span>
-                        {% else %}
-                        <span style="color: var(--warning); font-weight: 600;">🟡 Важный</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endif %}
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Privacy Headers -->
-    <div class="category-section" style="background: #f0f9ff; border-left: 4px solid var(--privacy-color);">
-        <div class="category-title">
-            <span>🔒 ЗАГОЛОВКИ ПРИВАТНОСТИ</span>
-            <span class="category-badge category-privacy">Приватность</span>
+        <div class="header-property">
+            <strong>Описание:</strong> {{ header.description }}
         </div>
-        <p style="margin: 0 0 15px 0; color: var(--gray-600); font-size: 0.95rem;">
-            Защита конфиденциальности пользователей и контроль утечки данных
-        </p>
 
-        <table class="headers-table">
-            <thead>
-                <tr>
-                    <th>Заголовок</th>
-                    <th>Статус</th>
-                    <th>Значение</th>
-                    <th>Уровень риска</th>
-                    <th>Важность</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for header in headers %}
-                {% if not header.critical and 'CORS' not in header.name and 'Access-Control' not in header.name %}
-                <tr>
-                    <td style="font-weight: 600;">{{ header.name }}</td>
-                    <td>
-                        {% if header.present %}
-                        <span class="status-present">✅ Присутствует</span>
-                        {% else %}
-                        <span class="status-missing">❌ Отсутствует</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if header.present %}
-                        <code class="header-value">{{ header.value|default('—', true)|truncate(40) }}</code>
-                        {% else %}
-                        <span>—</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <span class="risk-badge risk-{{ header.risk|lower }}">
-                            {% if header.risk == 'Высокий' %}
-                                Высокий риск
-                            {% elif header.risk == 'Средний' %}
-                                Средний риск
-                            {% else %}
-                                Низкий риск
-                            {% endif %}
-                        </span>
-                    </td>
-                    <td>
-                        <span style="color: var(--primary); font-weight: 600;">🔵 Рекомендуемый</span>
-                    </td>
-                </tr>
+        {% if header.present and header.value %}
+        <div class="header-property">
+            <strong>Значение:</strong>
+            <div class="header-value">{{ header.value|truncate(100) }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Warnings -->
+        {% if header.warnings %}
+            {% for warning in header.warnings %}
+            <div class="warning-item">
+                {% if '🚨' in warning or 'КРИТИЧЕСКО' in warning %}
+                    🚨 {{ warning }}
+                {% elif '⚠️' in warning %}
+                    ⚠️ {{ warning }}
+                {% else %}
+                    ℹ️ {{ warning }}
                 {% endif %}
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+            </div>
+            {% endfor %}
+        {% endif %}
 
-    <!-- Issues Section - ИСПРАВЛЕННАЯ ВЕРСИЯ -->
+        <!-- Recommendations -->
+        {% if header.recommendations %}
+            {% for recommendation in header.recommendations %}
+            <div class="recommendation-item">
+                {% if '✅' in recommendation %}
+                    ✅ {{ recommendation }}
+                {% else %}
+                    💡 {{ recommendation }}
+                {% endif %}
+            </div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- Additional info for missing headers -->
+        {% if not header.present %}
+        <div class="info-item-small">
+            💡 Рекомендация: Необходимо добавить этот заголовок для улучшения безопасности
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+
+    <!-- Issues Section -->
     <div class="issues-section">
         <h2 class="section-title">🚨 Выявленные проблемы и рекомендации</h2>
 
@@ -559,61 +510,25 @@
         {% endif %}
     </div>
 
-    <!-- Recommendations - ИСПРАВЛЕННАЯ ВЕРСИЯ -->
+    <!-- Final Recommendation -->
     <div class="recommendations">
-        <h3>💡 Рекомендации по улучшению безопасности:</h3>
-
-        {% set present_headers_names = [] %}
-        {% for header in headers %}
-            {% if header.present %}
-                {% set _ = present_headers_names.append(header.name) %}
-            {% endif %}
-        {% endfor %}
-
-        <h4>🛡️ Приоритетные улучшения:</h4>
-        <ul>
-            {% if 'Content-Security-Policy' not in present_headers_names %}
-            <li><strong>Content-Security-Policy</strong> - защита от XSS и внедрения кода</li>
-            {% endif %}
-            {% if 'Strict-Transport-Security' not in present_headers_names %}
-            <li><strong>Strict-Transport-Security</strong> - принудительное использование HTTPS</li>
-            {% endif %}
-            {% if 'X-Frame-Options' not in present_headers_names %}
-            <li><strong>X-Frame-Options</strong> - защита от clickjacking атак</li>
-            {% endif %}
-        </ul>
-
-        <h4>🌐 CORS политика (если требуется API):</h4>
-        <ul>
-            {% if 'Access-Control-Allow-Origin' not in present_headers_names %}
-            <li><strong>Access-Control-Allow-Origin</strong> - настройте для кросс-доменных запросов</li>
-            {% endif %}
-            {% if 'Access-Control-Allow-Methods' not in present_headers_names %}
-            <li><strong>Access-Control-Allow-Methods</strong> - ограничьте разрешенные HTTP методы</li>
-            {% endif %}
-            {% if 'Access-Control-Allow-Headers' not in present_headers_names %}
-            <li><strong>Access-Control-Allow-Headers</strong> - определите разрешенные заголовки</li>
-            {% endif %}
-        </ul>
-
-        <h4>🔒 Улучшение приватности:</h4>
-        <ul>
-            {% if 'Referrer-Policy' not in present_headers_names %}
-            <li><strong>Referrer-Policy</strong> - контроль утечки данных реферера</li>
-            {% endif %}
-            {% if 'Permissions-Policy' not in present_headers_names %}
-            <li><strong>Permissions-Policy</strong> - управление доступом к API браузера</li>
-            {% endif %}
-            {% if 'X-Content-Type-Options' not in present_headers_names %}
-            <li><strong>X-Content-Type-Options</strong> - блокировка MIME-sniffing</li>
-            {% endif %}
-        </ul>
-
-        {% if present_headers_names %}
-        <div style="margin-top: 15px; padding: 10px; background: #f0fdf4; border-radius: 6px;">
-            <strong>✅ Уже настроено:</strong> {{ present_headers_names|join(', ') }}
-        </div>
+        <h3>💡 Итоговая рекомендация:</h3>
+        {% if security_score >= 80 %}
+            <p style="color: var(--success); font-weight: 600;">✅ Безопасность на высоком уровне. Продолжайте в том же духе!</p>
+        {% elif security_score >= 60 %}
+            <p style="color: var(--warning); font-weight: 600;">⚠️ Хороший уровень безопасности, но есть возможности для улучшения.</p>
+        {% else %}
+            <p style="color: var(--danger); font-weight: 600;">🚨 Требуется немедленное внимание к настройкам безопасности!</p>
         {% endif %}
+
+        <div style="margin-top: 15px;">
+            <strong>📊 Статистика сканирования:</strong><br>
+            • Цель: {{ target }}<br>
+            • Оценка безопасности: {{ security_score }}%<br>
+            • Заголовков проверено: {{ total_headers }}<br>
+            • Проблем обнаружено: {{ issues|length }}<br>
+            • Время сканирования: {{ scan_duration }} секунд
+        </div>
     </div>
 
     <!-- Actions -->

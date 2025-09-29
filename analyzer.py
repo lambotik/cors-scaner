@@ -5,15 +5,6 @@ import re
 def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Dict[str, any]], List[str], int]:
     """
     Комплексный анализ HTTP-заголовков безопасности.
-
-    Args:
-        headers (Dict[str, Optional[str]]): Словарь HTTP-заголовков
-
-    Returns:
-        Tuple[List[Dict], List[str], int]:
-            - Список заголовков с анализом
-            - Список проблем
-            - Оценка безопасности (0-100)
     """
     try:
         print(f"🔍 Анализируем заголовки: {list(headers.keys())}")
@@ -121,6 +112,15 @@ def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Di
                 # Добавляем проблемы в общий список
                 all_issues.extend(analysis['issues'])
 
+                # АВТОМАТИЧЕСКИ ДОБАВЛЯЕМ ПРОБЛЕМУ ДЛЯ ОТСУТСТВУЮЩИХ КРИТИЧЕСКИХ ЗАГОЛОВКОВ
+                if header_def['critical'] and not header_value:
+                    if header_name not in ['Access-Control-Allow-Origin', 'Access-Control-Allow-Credentials']:
+                        # Для большинства критических заголовков
+                        all_issues.append(f"❌ {header_name} отсутствует — критическая уязвимость безопасности")
+                    else:
+                        # Для CORS заголовков (они могут отсутствовать, если CORS не используется)
+                        all_issues.append(f"⚠️ {header_name} отсутствует — может потребоваться для API")
+
             except Exception as e:
                 print(f"⚠️ Ошибка анализа заголовка {header_name}: {e}")
                 # Добавляем заголовок с ошибкой
@@ -143,6 +143,9 @@ def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Di
         except Exception as e:
             print(f"⚠️ Ошибка комплексного CORS анализа: {e}")
             all_issues.append(f"❌ Ошибка CORS анализа: {str(e)}")
+
+        # УДАЛЯЕМ ДУБЛИРУЮЩИЕСЯ ПРОБЛЕМЫ
+        all_issues = list(set(all_issues))
 
         # Рассчитываем общую оценку безопасности
         security_score = _calculate_security_score(analyzed_headers)
@@ -498,13 +501,16 @@ def _calculate_security_score(analyzed_headers: List[Dict]) -> int:
         weight = 3 if header['critical'] else 1
 
         # Очки за заголовок: присутствует = 1, отсутствует = 0
-        # Штраф за предупреждения: -0.5 за каждое
-        score = 1 if header['present'] else 0
-
+        # Для критических заголовков отсутствие = 0 очков
+        # Для некритических заголовков отсутствие = 0.5 очков
         if header['present']:
-            # Используем warnings вместо issues
+            score = 1.0
+            # Штраф за предупреждения
             warnings_count = len(header.get('warnings', []))
-            score -= min(0.5 * warnings_count, 0.5)  # Макс штраф -0.5
+            score -= min(0.3 * warnings_count, 0.5)  # Макс штраф -0.5
+        else:
+            # Отсутствие критического заголовка сильно снижает оценку
+            score = 0.0 if header['critical'] else 0.3
 
         score = max(0, score)  # Не меньше 0
 
