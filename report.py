@@ -1,6 +1,7 @@
-from colorama import Fore, Style
-from typing import Dict, Any
+from colorama import Fore, Style, Back
+from typing import Dict, List, Optional, Any
 from datetime import datetime
+import os
 
 
 def print_report(scan_results: Dict[str, Any]) -> None:
@@ -10,91 +11,139 @@ def print_report(scan_results: Dict[str, Any]) -> None:
     Args:
         scan_results (Dict): Результаты сканирования из scanner.py
     """
-    print(Fore.CYAN + "\n🔐 ОТЧЕТ БЕЗОПАСНОСТИ ЗАГОЛОВКОВ" + Style.RESET_ALL)
-    print("=" * 60)
+    # Очистка консоли для лучшего отображения
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+    print(f"\n{Back.BLUE}{Fore.WHITE}🔐 ОТЧЕТ БЕЗОПАСНОСТИ HTTP-ЗАГОЛОВКОВ {Style.RESET_ALL}")
+    print("=" * 70)
 
     # Основная информация
-    print(f"{Fore.YELLOW}🎯 Цель:{Style.RESET_ALL} {scan_results['target']}")
-    print(f"{Fore.YELLOW}📅 Дата:{Style.RESET_ALL} {scan_results['date']}")
-    print(f"{Fore.YELLOW}⏱️  Длительность:{Style.RESET_ALL} {scan_results['scan_duration']}с")
-    print(f"{Fore.YELLOW}📊 Статус:{Style.RESET_ALL} {scan_results['http_status']}")
+    print(f"\n{Fore.CYAN}🎯 ЦЕЛЬ СКАНИРОВАНИЯ:{Style.RESET_ALL}")
+    print(f"   URL: {scan_results['target']}")
+    print(f"   Финальный URL: {scan_results.get('final_url', scan_results['target'])}")
+    print(f"   Время: {scan_results['date']}")
+    print(f"   Длительность: {scan_results['scan_duration']}с")
+    print(f"   HTTP статус: {scan_results['http_status']}")
 
-    # Оценка безопасности
+    # Оценка безопасности с графическим индикатором
     score = scan_results['security_score']
+    print(f"\n{Fore.CYAN}📊 ОЦЕНКА БЕЗОПАСНОСТИ:{Style.RESET_ALL}")
+
+    # Графический индикатор
+    bars = int(score / 5)
+    progress_bar = f"{Fore.GREEN}{'█' * bars}{Fore.RED}{'░' * (20 - bars)}{Style.RESET_ALL}"
+
     if score >= 80:
-        score_color = Fore.GREEN
+        color = Fore.GREEN
         level = "ОТЛИЧНО"
+        emoji = "🎉"
     elif score >= 60:
-        score_color = Fore.YELLOW
-        level = "УДОВЛЕТВОРИТЕЛЬНО"
+        color = Fore.YELLOW
+        level = "ХОРОШО"
+        emoji = "✅"
     else:
-        score_color = Fore.RED
-        level = "НИЗКИЙ УРОВЕНЬ"
+        color = Fore.RED
+        level = "ТРЕБУЕТ ВНИМАНИЯ"
+        emoji = "⚠️"
 
-    print(f"{score_color}🛡️  Оценка безопасности: {score}% - {level}{Style.RESET_ALL}")
+    print(f"   {progress_bar} {color}{score}% {emoji} - {level}{Style.RESET_ALL}")
 
-    # Статистика заголовков
-    print(f"{Fore.CYAN}📋 Заголовки:{Style.RESET_ALL} {scan_results['present_headers']}/{scan_results['total_headers']} "
-          f"({scan_results['critical_headers_present']} критических)")
+    # Статистика
+    print(f"\n{Fore.CYAN}📈 СТАТИСТИКА:{Style.RESET_ALL}")
+    print(f"   📋 Заголовков: {scan_results['present_headers']}/{scan_results['total_headers']} настроено")
+    print(f"   🔴 Критических: {scan_results['critical_headers_present']} присутствует")
 
-    # Детализация заголовков
-    print(Fore.CYAN + "\n🔍 ЗАГОЛОВКИ БЕЗОПАСНОСТИ:" + Style.RESET_ALL)
-    print("-" * 50)
-
-    for header in scan_results['headers']:
-        status = "✅ ПРИСУТСТВУЕТ" if header['present'] else "❌ ОТСУТСТВУЕТ"
-
-        if header['present']:
-            # Зеленый для присутствующих
-            print(f"{Fore.GREEN}{status}{Style.RESET_ALL} {header['name']}")
-            print(
-                f"   {Fore.WHITE}Значение: {header['value'][:100]}{'...' if len(header['value']) > 100 else ''}{Style.RESET_ALL}")
-            print(f"   {Fore.BLUE}Риск: {header['risk']}{Style.RESET_ALL}")
-
-            # Предупреждения
-            for warning in header['warnings']:
-                if '🚨' in warning or 'КРИТИЧЕСКО' in warning:
-                    print(f"   {Fore.RED}{warning}{Style.RESET_ALL}")
-                elif '⚠️' in warning:
-                    print(f"   {Fore.YELLOW}{warning}{Style.RESET_ALL}")
-                else:
-                    print(f"   {Fore.WHITE}{warning}{Style.RESET_ALL}")
-
-            # Рекомендации
-            for recommendation in header['recommendations']:
-                if recommendation.startswith('✅'):
-                    print(f"   {Fore.GREEN}{recommendation}{Style.RESET_ALL}")
-        else:
-            # Красный для отсутствующих
-            print(f"{Fore.RED}{status}{Style.RESET_ALL} {header['name']}")
-            print(f"   {Fore.RED}Риск: {header['risk']}{Style.RESET_ALL}")
-
-        print()
-
-    # Выявленные проблемы
-    print(Fore.CYAN + "⚠️  ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ:" + Style.RESET_ALL)
-    print("-" * 50)
-
-    if scan_results['issues']:
-        for i, issue in enumerate(scan_results['issues'], 1):
-            if issue.startswith('🚨') or 'КРИТИЧЕСКО' in issue:
-                print(f"{Fore.RED}{i}. {issue}{Style.RESET_ALL}")
-            elif issue.startswith('❌'):
-                print(f"{Fore.RED}{i}. {issue}{Style.RESET_ALL}")
-            elif issue.startswith('⚠️'):
-                print(f"{Fore.YELLOW}{i}. {issue}{Style.RESET_ALL}")
-            else:
-                print(f"{Fore.WHITE}{i}. {issue}{Style.RESET_ALL}")
-    else:
-        print(f"{Fore.GREEN}✅ Проблем не обнаружено! Отличная безопасность!{Style.RESET_ALL}")
+    critical_issues = sum(1 for issue in scan_results['issues'] if '🚨' in issue or 'КРИТИЧЕСКО' in issue)
+    print(f"   ⚠️  Проблем: {len(scan_results['issues'])} обнаружено ({critical_issues} критических)")
 
     # Информация о сервере
-    if scan_results['server_info']:
-        print(Fore.CYAN + "\n🖥️  ИНФОРМАЦИЯ О СЕРВЕРЕ:" + Style.RESET_ALL)
-        print("-" * 30)
-        for key, value in scan_results['server_info'].items():
-            if value:
-                print(f"{Fore.WHITE}{key}: {value}{Style.RESET_ALL}")
+    if scan_results.get('server_info'):
+        server_info = scan_results['server_info']
+        if any(server_info.values()):
+            print(f"\n{Fore.CYAN}🖥️  ИНФОРМАЦИЯ О СЕРВЕРЕ:{Style.RESET_ALL}")
+            if server_info.get('server'):
+                print(f"   Server: {server_info['server']}")
+            if server_info.get('x_powered_by'):
+                print(f"   X-Powered-By: {server_info['x_powered_by']}")
+
+    # Детализация заголовков
+    print(f"\n{Fore.CYAN}🛡️  ДЕТАЛЬНЫЙ АНАЛИЗ ЗАГОЛОВКОВ:{Style.RESET_ALL}")
+    print("-" * 70)
+
+    for header in scan_results['headers']:
+        if header['present']:
+            status_icon = f"{Fore.GREEN}✅{Style.RESET_ALL}"
+            status_text = "ПРИСУТСТВУЕТ"
+        else:
+            status_icon = f"{Fore.RED}❌{Style.RESET_ALL}"
+            status_text = "ОТСУТСТВУЕТ"
+
+        # Цвет риска
+        if header['risk'] == 'Высокий':
+            risk_color = Fore.RED
+        elif header['risk'] == 'Средний':
+            risk_color = Fore.YELLOW
+        else:
+            risk_color = Fore.GREEN
+
+        print(f"\n{status_icon} {Fore.BLUE}{header['name']}{Style.RESET_ALL}")
+        print(f"   └─ Статус: {status_text}")
+        print(f"   └─ Риск: {risk_color}{header['risk']}{Style.RESET_ALL}")
+        print(f"   └─ Описание: {header['description']}")
+
+        if header['present'] and header['value']:
+            value_preview = header['value'][:80] + ('...' if len(header['value']) > 80 else '')
+            print(f"   └─ Значение: {Fore.WHITE}{value_preview}{Style.RESET_ALL}")
+
+            # Предупреждения
+            if header['warnings']:
+                for warning in header['warnings']:
+                    if '🚨' in warning or 'КРИТИЧЕСКО' in warning:
+                        print(f"      {Fore.RED}⚠️  {warning}{Style.RESET_ALL}")
+                    elif '⚠️' in warning:
+                        print(f"      {Fore.YELLOW}⚠️  {warning}{Style.RESET_ALL}")
+                    else:
+                        print(f"      {Fore.WHITE}ℹ️  {warning}{Style.RESET_ALL}")
+
+            # Рекомендации
+            if header['recommendations']:
+                for rec in header['recommendations']:
+                    print(f"      {Fore.GREEN}✅ {rec}{Style.RESET_ALL}")
+
+    # Выявленные проблемы
+    print(f"\n{Fore.CYAN}🚨 ВЫЯВЛЕННЫЕ ПРОБЛЕМЫ И РЕКОМЕНДАЦИИ:{Style.RESET_ALL}")
+    print("-" * 70)
+
+    if scan_results['issues']:
+        critical_issues = [issue for issue in scan_results['issues'] if '🚨' in issue or 'КРИТИЧЕСКО' in issue]
+        warning_issues = [issue for issue in scan_results['issues'] if issue.startswith('❌')]
+        info_issues = [issue for issue in scan_results['issues'] if issue.startswith('⚠️') or issue.startswith('ℹ️')]
+
+        if critical_issues:
+            print(f"\n{Fore.RED}🔴 КРИТИЧЕСКИЕ ПРОБЛЕМЫ:{Style.RESET_ALL}")
+            for i, issue in enumerate(critical_issues, 1):
+                print(f"   {i}. {Fore.RED}{issue}{Style.RESET_ALL}")
+
+        if warning_issues:
+            print(f"\n{Fore.YELLOW}🟡 ВАЖНЫЕ ПРОБЛЕМЫ:{Style.RESET_ALL}")
+            for i, issue in enumerate(warning_issues, 1):
+                print(f"   {i}. {Fore.YELLOW}{issue}{Style.RESET_ALL}")
+
+        if info_issues:
+            print(f"\n{Fore.BLUE}🔵 РЕКОМЕНДАЦИИ:{Style.RESET_ALL}")
+            for i, issue in enumerate(info_issues, 1):
+                print(f"   {i}. {Fore.BLUE}{issue}{Style.RESET_ALL}")
+    else:
+        print(f"\n{Fore.GREEN}🎉 Отличные новости! Критических проблем не обнаружено!{Style.RESET_ALL}")
+
+    # Итоговая рекомендация
+    print(f"\n{Fore.CYAN}💡 ИТОГОВАЯ РЕКОМЕНДАЦИЯ:{Style.RESET_ALL}")
+    if score >= 80:
+        print(f"   {Fore.GREEN}✅ Безопасность на высоком уровне. Продолжайте в том же духе!{Style.RESET_ALL}")
+    elif score >= 60:
+        print(f"   {Fore.YELLOW}⚠️  Хороший уровень безопасности, но есть возможности для улучшения.{Style.RESET_ALL}")
+    else:
+        print(f"   {Fore.RED}🚨 Требуется немедленное внимание к настройкам безопасности!{Style.RESET_ALL}")
 
 
 def generate_text_report(scan_results: Dict[str, Any]) -> str:

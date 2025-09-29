@@ -2,346 +2,603 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Отчёт безопасности - CORS-сканер</title>
+    <title>Security Scan Report - CORS Scanner</title>
     <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkYAACAAAf//BA0YpZ4AAAAASUVORK5CYII=">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Сохраняем существующие стили и добавляем новые */
+        :root {
+            --primary: #667eea;
+            --primary-dark: #764ba2;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f4f4;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
             padding: 20px;
+            color: var(--gray-800);
+        }
+
+        .container {
             max-width: 1200px;
             margin: 0 auto;
         }
 
-        .header {
+        .report-card {
             background: white;
-            padding: 30px;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .report-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 40px;
             text-align: center;
         }
 
-        h1 {
-            color: #333;
-            margin: 0;
+        .report-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 15px;
         }
 
-        .score {
-            font-size: 28px;
-            font-weight: bold;
-            padding: 20px;
-            border-radius: 10px;
+        .report-header .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .score-section {
+            padding: 30px;
             text-align: center;
-            margin: 20px 0;
-        }
-        .score-high { background: #d4edda; color: #155724; border: 3px solid #28a745; }
-        .score-medium { background: #fff3cd; color: #856404; border: 3px solid #ffc107; }
-        .score-low { background: #f8d7da; color: #721c24; border: 3px solid #dc3545; }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
+            border-bottom: 1px solid var(--gray-200);
         }
 
-        .info-card {
-            background: white;
-            padding: 15px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-
-        .info-card strong {
-            display: block;
-            margin-bottom: 5px;
-            color: #555;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        }
-
-        th, td {
-            border: 1px solid #ddd;
-            padding: 15px;
-            text-align: left;
-        }
-
-        th {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            font-weight: bold;
-        }
-
-        tr:nth-child(even) {
-            background: #f8f9fa;
-        }
-
-        .missing { color: #dc3545; font-weight: bold; }
-        .ok { color: #28a745; font-weight: bold; }
-        .warning { color: #ffc107; font-weight: bold; }
-        .critical { color: #dc3545; font-weight: bold; }
-
-        .header-value {
-            font-family: monospace;
-            font-size: 12px;
-            background: #f8f9fa;
-            padding: 4px 8px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            word-break: break-all;
-        }
-
-        .issues-section {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            margin: 20px 0;
-        }
-
-        .back-link {
-            display: inline-flex;
+        .score-circle {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            display: flex;
             align-items: center;
-            gap: 8px;
-            margin-top: 20px;
-            padding: 12px 25px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 8px;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 2rem;
             font-weight: bold;
-            transition: transform 0.2s;
+            position: relative;
+            background: conic-gradient(var(--success) 0% calc(var(--score) * 1%), var(--gray-200) calc(var(--score) * 1%) 100%);
         }
 
-        .back-link:hover {
+        .score-circle::before {
+            content: '';
+            position: absolute;
+            width: 100px;
+            height: 100px;
+            background: white;
+            border-radius: 50%;
+        }
+
+        .score-text {
+            position: relative;
+            z-index: 1;
+        }
+
+        .score-high { color: var(--success); }
+        .score-medium { color: var(--warning); }
+        .score-low { color: var(--danger); }
+
+        .score-label {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .score-description {
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 30px;
+            background: var(--gray-50);
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: var(--gray-600);
+            font-size: 0.9rem;
+        }
+
+        .headers-section {
+            padding: 30px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 25px;
+            color: var(--gray-900);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .header-card {
+            background: white;
+            border: 1px solid var(--gray-200);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .header-card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
             transform: translateY(-2px);
+        }
+
+        .header-card.critical {
+            border-left: 4px solid var(--danger);
+        }
+
+        .header-card.warning {
+            border-left: 4px solid var(--warning);
+        }
+
+        .header-card.success {
+            border-left: 4px solid var(--success);
+        }
+
+        .header-main {
+            display: flex;
+            justify-content: between;
+            align-items: start;
+            margin-bottom: 15px;
+        }
+
+        .header-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--gray-900);
+            flex: 1;
+        }
+
+        .header-status {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-present {
+            background: var(--success);
             color: white;
-            text-decoration: none;
+        }
+
+        .status-missing {
+            background: var(--danger);
+            color: white;
         }
 
         .header-details {
-            margin-top: 10px;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            font-size: 14px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .detail-label {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+            font-weight: 500;
+        }
+
+        .detail-value {
+            font-size: 0.9rem;
+            color: var(--gray-800);
+        }
+
+        .header-value {
+            font-family: 'Courier New', monospace;
+            background: var(--gray-100);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        .risk-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .risk-high { background: var(--danger); color: white; }
+        .risk-medium { background: var(--warning); color: white; }
+        .risk-low { background: var(--success); color: white; }
+
+        .warnings-container {
+            margin-top: 15px;
         }
 
         .warning-item {
-            color: #856404;
-            background: #fff3cd;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 4px;
-            border-left: 4px solid #ffc107;
+            display: flex;
+            align-items: start;
+            gap: 10px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            font-size: 0.9rem;
         }
 
-        .critical-item {
-            color: #721c24;
-            background: #f8d7da;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 4px;
-            border-left: 4px solid #dc3545;
+        .warning-critical {
+            background: #fef2f2;
+            border-left: 3px solid var(--danger);
         }
 
-        .success-item {
-            color: #155724;
-            background: #d4edda;
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 4px;
-            border-left: 4px solid #28a745;
+        .warning-normal {
+            background: #fffbeb;
+            border-left: 3px solid var(--warning);
         }
 
-        .risk-high { color: #dc3545; }
-        .risk-medium { color: #ffc107; }
-        .risk-low { color: #28a745; }
+        .warning-info {
+            background: #eff6ff;
+            border-left: 3px solid var(--info);
+        }
 
-        .critical-badge {
-            background: #dc3545;
-            color: white;
-            padding: 2px 8px;
+        .issues-section {
+            padding: 30px;
+            background: var(--gray-50);
+        }
+
+        .issues-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .issue-card {
+            background: white;
+            padding: 20px;
             border-radius: 12px;
-            font-size: 12px;
-            margin-left: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .issue-card.critical {
+            border-top: 4px solid var(--danger);
+        }
+
+        .issue-card.warning {
+            border-top: 4px solid var(--warning);
+        }
+
+        .issue-card.info {
+            border-top: 4px solid var(--info);
+        }
+
+        .no-issues {
+            text-align: center;
+            padding: 40px;
+            color: var(--success);
+        }
+
+        .no-issues i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+
+        .actions-section {
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .server-info {
+            padding: 20px;
+            background: var(--gray-100);
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .server-info h3 {
+            margin-bottom: 10px;
+            color: var(--gray-800);
+        }
+
+        .server-details {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .server-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .server-label {
+            font-size: 0.8rem;
+            color: var(--gray-600);
+        }
+
+        .server-value {
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .header-details {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .issues-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .report-header h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>
-            <span>🔐</span>
-            Отчёт безопасности заголовков
-        </h1>
-    </div>
+    <div class="container">
+        <div class="report-card">
+            <!-- Header -->
+            <div class="report-header">
+                <h1>
+                    <i class="fas fa-shield-alt"></i>
+                    Security Scan Report
+                </h1>
+                <p class="subtitle">Comprehensive analysis of HTTP security headers</p>
+            </div>
 
-    {% if error %}
-    <div class="error">
-        <h2>❌ Ошибка сканирования</h2>
-        <p><strong>Цель:</strong> {{ target }}</p>
-        <p><strong>Дата:</strong> {{ date }}</p>
-        <ul>
-            {% for issue in issues %}
-            <li>{{ issue }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% else %}
-    <div class="score score-{{ 'high' if security_score >= 80 else 'medium' if security_score >= 60 else 'low' }}">
-        Оценка безопасности: {{ security_score }}%
-    </div>
-
-    <div class="info-grid">
-        <div class="info-card">
-            <strong>🔗 Цель</strong>
-            {{ target }}<br>
-            <small>Финальный URL: {{ final_url }}</small>
-        </div>
-        <div class="info-card">
-            <strong>📅 Дата и время</strong>
-            {{ date }}<br>
-            <small>Длительность: {{ scan_duration }}с</small>
-        </div>
-        <div class="info-card">
-            <strong>📊 Статистика</strong>
-            Заголовков: {{ present_headers }}/{{ total_headers }}<br>
-            <small>Критических: {{ critical_headers_present }}</small>
-        </div>
-        <div class="info-card">
-            <strong>🌐 HTTP информация</strong>
-            Статус: {{ http_status }}<br>
-            <small>Редиректы: {{ 'Да' if redirected else 'Нет' }}</small>
-        </div>
-    </div>
-
-    <!-- Информация о сервере -->
-    {% if server_info and (server_info.server or server_info.x_powered_by or server_info.content_type) %}
-    <div class="info-grid">
-        <div class="info-card">
-            <strong>🖥️ Информация о сервере</strong>
-            {% if server_info.server %}Server: {{ server_info.server }}<br>{% endif %}
-            {% if server_info.x_powered_by %}X-Powered-By: {{ server_info.x_powered_by }}<br>{% endif %}
-            {% if server_info.content_type %}Content-Type: {{ server_info.content_type }}{% endif %}
-        </div>
-    </div>
-    {% endif %}
-
-    <h2>🛡️ Заголовки безопасности</h2>
-    <table>
-        <tr>
-            <th>Заголовок</th>
-            <th>Статус</th>
-            <th>Значение</th>
-            <th>Риск</th>
-            <th>Детали</th>
-        </tr>
-        {% for header in headers %}
-        <tr>
-            <td>
-                <strong>{{ header.name }}</strong>
-                {% if header.critical %}<span class="critical-badge">КРИТИЧЕСКИЙ</span>{% endif %}
-            </td>
-            <td class="{{ 'ok' if header.present else 'missing' }}">
-                {% if header.present %}✅ Присутствует{% else %}❌ Отсутствует{% endif %}
-            </td>
-            <td>
-                {% if header.present %}
-                <code class="header-value">{{ header.value|truncate(80) }}</code>
-                {% else %}
-                —
-                {% endif %}
-            </td>
-            <td class="risk-{{ 'high' if header.risk == 'Высокий' else 'medium' if header.risk == 'Средний' else 'low' }}">
-                {{ header.risk }}
-            </td>
-            <td>
-                {% if header.present %}
-                    {% if header.warnings %}
-                        {% for warning in header.warnings %}
-                            <div class="{{ 'critical-item' if '🚨' in warning or 'КРИТИЧЕСКО' in warning else 'warning-item' }}">
-                                {{ warning }}
-                            </div>
-                        {% endfor %}
+            <!-- Score Section -->
+            <div class="score-section">
+                <div class="score-circle" style="--score: {{ security_score }};">
+                    <span class="score-text {{ 'score-high' if security_score >= 80 else 'score-medium' if security_score >= 60 else 'score-low' }}">
+                        {{ security_score }}%
+                    </span>
+                </div>
+                <div class="score-label">
+                    {% if security_score >= 80 %}
+                        Excellent Security
+                    {% elif security_score >= 60 %}
+                        Good Security
+                    {% else %}
+                        Needs Improvement
                     {% endif %}
-                    {% if header.recommendations %}
-                        {% for recommendation in header.recommendations %}
-                            <div class="success-item">
-                                {{ recommendation }}
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                {% else %}
-                    <div class="critical-item">
-                        ❌ Заголовок отсутствует - {{ header.description }}
+                </div>
+                <p class="score-description">
+                    Based on analysis of {{ total_headers }} security headers
+                </p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">{{ present_headers }}/{{ total_headers }}</div>
+                    <div class="stat-label">Headers Configured</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ critical_headers_present }}</div>
+                    <div class="stat-label">Critical Headers</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ issues|length }}</div>
+                    <div class="stat-label">Issues Found</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">{{ scan_duration }}s</div>
+                    <div class="stat-label">Scan Duration</div>
+                </div>
+            </div>
+
+            <!-- Server Information -->
+            {% if server_info and (server_info.server or server_info.x_powered_by) %}
+            <div class="server-info">
+                <h3><i class="fas fa-server"></i> Server Information</h3>
+                <div class="server-details">
+                    {% if server_info.server %}
+                    <div class="server-item">
+                        <span class="server-label">Web Server</span>
+                        <span class="server-value">{{ server_info.server }}</span>
                     </div>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
+                    {% endif %}
+                    {% if server_info.x_powered_by %}
+                    <div class="server-item">
+                        <span class="server-label">Powered By</span>
+                        <span class="server-value">{{ server_info.x_powered_by }}</span>
+                    </div>
+                    {% endif %}
+                    <div class="server-item">
+                        <span class="server-label">HTTP Status</span>
+                        <span class="server-value">{{ http_status }}</span>
+                    </div>
+                    <div class="server-item">
+                        <span class="server-label">Final URL</span>
+                        <span class="server-value">{{ final_url }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
 
-    <div class="issues-section">
-        <h2>⚠️ Выявленные проблемы</h2>
-        {% if issues %}
-        <ul style="list-style: none; padding: 0;">
-            {% for issue in issues %}
-            <li class="{{ 'critical-item' if '🚨' in issue or 'КРИТИЧЕСКО' in issue else 'warning-item' if '⚠️' in issue else 'missing' if '❌' in issue else '' }}"
-                style="margin: 10px 0; padding: 12px; border-radius: 5px;">
-                {{ issue }}
-            </li>
-            {% endfor %}
-        </ul>
-        {% else %}
-        <div class="success-item" style="padding: 20px; text-align: center;">
-            <h3>🎉 Проблем не обнаружено!</h3>
-            <p>Все критически важные заголовки безопасности настроены правильно.</p>
-        </div>
-        {% endif %}
-    </div>
+            <!-- Headers Section -->
+            <div class="headers-section">
+                <h2 class="section-title">
+                    <i class="fas fa-list-alt"></i>
+                    Security Headers Analysis
+                </h2>
 
-    <!-- Сводка по критическим заголовкам -->
-    <div class="info-grid">
-        <div class="info-card">
-            <strong>📈 Сводка безопасности</strong>
-            Общая оценка: {{ security_score }}%<br>
-            {% set critical_count = [] %}
-            {% for issue in issues %}
-                {% if '🚨' in issue or 'КРИТИЧЕСКО' in issue %}
-                    {% if critical_count.append(1) %}{% endif %}
-                {% endif %}
-            {% endfor %}
-            Критических проблем: {{ critical_count|length }}<br>
-            {% set warning_count = [] %}
-            {% for header in headers %}
-                {% if header.warnings %}
-                    {% for warning in header.warnings %}
-                        {% if warning_count.append(1) %}{% endif %}
+                {% for header in headers %}
+                <div class="header-card {{ 'critical' if header.critical and not header.present else 'warning' if header.warnings else 'success' if header.present else '' }}">
+                    <div class="header-main">
+                        <div class="header-name">
+                            {{ header.name }}
+                            {% if header.critical %}
+                            <span class="risk-badge risk-high" style="margin-left: 10px;">CRITICAL</span>
+                            {% endif %}
+                        </div>
+                        <div class="header-status {{ 'status-present' if header.present else 'status-missing' }}">
+                            {{ 'Present' if header.present else 'Missing' }}
+                        </div>
+                    </div>
+
+                    <div class="header-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Risk Level</span>
+                            <span class="risk-badge risk-{{ 'high' if header.risk == 'Высокий' else 'medium' if header.risk == 'Средний' else 'low' }}">
+                                {{ header.risk }}
+                            </span>
+                        </div>
+
+                        <div class="detail-item">
+                            <span class="detail-label">Description</span>
+                            <span class="detail-value">{{ header.description }}</span>
+                        </div>
+                    </div>
+
+                    {% if header.present and header.value %}
+                    <div class="detail-item">
+                        <span class="detail-label">Header Value</span>
+                        <code class="header-value">{{ header.value }}</code>
+                    </div>
+                    {% endif %}
+
+                    {% if header.warnings %}
+                    <div class="warnings-container">
+                        {% for warning in header.warnings %}
+                        <div class="warning-item {{ 'warning-critical' if '🚨' in warning or 'КРИТИЧЕСКО' in warning else 'warning-normal' if '⚠️' in warning else 'warning-info' }}">
+                            <i class="fas {{ 'fa-exclamation-triangle' if '🚨' in warning or 'КРИТИЧЕСКО' in warning else 'fa-exclamation-circle' if '⚠️' in warning else 'fa-info-circle' }}"></i>
+                            <span>{{ warning }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if header.recommendations %}
+                    <div class="warnings-container">
+                        {% for recommendation in header.recommendations %}
+                        <div class="warning-item warning-info">
+                            <i class="fas fa-check-circle"></i>
+                            <span>{{ recommendation }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Issues Section -->
+            <div class="issues-section">
+                <h2 class="section-title">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Security Issues & Recommendations
+                </h2>
+
+                {% if issues %}
+                <div class="issues-grid">
+                    {% for issue in issues %}
+                    <div class="issue-card {{ 'critical' if '🚨' in issue or 'КРИТИЧЕСКО' in issue else 'warning' if '❌' in issue or '⚠️' in issue else 'info' }}">
+                        <div style="display: flex; align-items: start; gap: 10px;">
+                            <i class="fas {{ 'fa-fire' if '🚨' in issue or 'КРИТИЧЕСКО' in issue else 'fa-exclamation-triangle' if '❌' in issue else 'fa-info-circle' }}"
+                               style="color: {{ '#ef4444' if '🚨' in issue or 'КРИТИЧЕСКО' in issue else '#f59e0b' if '❌' in issue else '#3b82f6' }}"></i>
+                            <div>
+                                <p style="margin: 0; line-height: 1.4;">{{ issue }}</p>
+                            </div>
+                        </div>
+                    </div>
                     {% endfor %}
+                </div>
+                {% else %}
+                <div class="no-issues">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>No Critical Issues Found!</h3>
+                    <p>All security headers are properly configured.</p>
+                </div>
                 {% endif %}
-            {% endfor %}
-            Рекомендаций: {{ warning_count|length }}
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-section">
+                <a href="/" class="btn">
+                    <i class="fas fa-redo"></i>
+                    New Scan
+                </a>
+            </div>
         </div>
     </div>
-    {% endif %}
-
-    <a href="/" class="back-link">
-        ← Новое сканирование
-    </a>
 </body>
 </html>
