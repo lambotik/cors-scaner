@@ -8,41 +8,19 @@ app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
 
-# Маршрут для favicon
-@app.route('/favicon.ico')
-def favicon():
-    return send_from_directory(os.path.join(app.root_path, 'static'),
-                               'favicon.ico', mimetype='image/x-icon')
-
-
-@app.route("/", methods=["GET", "POST"])
-def index():
-    """
-    Главная страница приложения.
-    """
-    try:
-        if request.method == "POST":
-            url = request.form.get("url")
-            if not url:
-                return render_template("index.html", error="Ошибка: URL не указан")
-            print(f"🔍 Сканируем URL: {url}")
-            results = scan_headers(url)
-            print(f"📊 Результаты получены, оценка: {results.get('security_score', 0)}%")
-
-            # Преобразуем результаты в новую структуру
-            formatted_results = format_results_for_template(results)
-
-            # Передаем данные в шаблон правильно
-            return render_template("report.html", **formatted_results)
-        return render_template("index.html")
-    except Exception as e:
-        return render_template("index.html", error=f"Ошибка: {str(e)}")
-
-
 def format_results_for_template(results):
     """
     Преобразует результаты сканирования в структуру для нового шаблона
     """
+    # Очищаем проблемы от лишних символов но сохраняем эмодзи
+    cleaned_problems = []
+    for problem in results.get('issues', []):
+        # Убираем только лишние префиксы, но сохраняем эмодзи
+        cleaned = problem.replace("X-", "").replace("A.", "").strip()
+        # Убираем двойные пробелы
+        cleaned = ' '.join(cleaned.split())
+        cleaned_problems.append(cleaned)
+
     # Базовая структура
     formatted = {
         'security_score': results.get('security_score', 0),
@@ -50,9 +28,9 @@ def format_results_for_template(results):
         'target_url': results.get('target', ''),
         'final_url': results.get('final_url', results.get('target', '')),
         'configured_headers': results.get('present_headers', 0),
-        'problems_count': len(results.get('issues', [])),
+        'problems_count': len(cleaned_problems),
         'scan_duration': f"{results.get('scan_duration', 0):.2f}s",
-        'problems': results.get('issues', []),
+        'problems': cleaned_problems,  # Используем очищенные проблемы
         'final_recommendation': {
             'title': '🚨 Требуется внимание к настройкам безопасности!' if results.get('security_score',
                                                                                       0) < 70 else '✅ Безопасность на хорошем уровне',
@@ -142,6 +120,37 @@ def format_results_for_template(results):
 
     formatted['headers'] = headers_data
     return formatted
+
+
+# Маршрут для favicon
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, 'static'),
+                               'favicon.ico', mimetype='image/x-icon')
+
+
+@app.route("/", methods=["GET", "POST"])
+def index():
+    """
+    Главная страница приложения.
+    """
+    try:
+        if request.method == "POST":
+            url = request.form.get("url")
+            if not url:
+                return render_template("index.html", error="Ошибка: URL не указан")
+            print(f"🔍 Сканируем URL: {url}")
+            results = scan_headers(url)
+            print(f"📊 Результаты получены, оценка: {results.get('security_score', 0)}%")
+
+            # Преобразуем результаты в новую структуру
+            formatted_results = format_results_for_template(results)
+
+            # Передаем данные в шаблон правильно
+            return render_template("report.html", **formatted_results)
+        return render_template("index.html")
+    except Exception as e:
+        return render_template("index.html", error=f"Ошибка: {str(e)}")
 
 
 @app.route("/api/scan", methods=["POST"])
