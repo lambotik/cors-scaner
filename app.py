@@ -1,29 +1,12 @@
 import os
-from flask import Flask, request, render_template
-
-# Диагностика импорта
-try:
-    from scanner import scan_headers
-    print("✅ scanner.py успешно импортирован")
-except ImportError as e:
-    print(f"❌ Ошибка импорта scanner.py: {e}")
-    # Заглушка для теста
-    def scan_headers(url):
-        return {
-            "target": url,
-            "date": "2025-09-29",
-            "headers": [
-                {"name": "Content-Security-Policy", "present": True, "risk": "XSS", "value": "test"},
-                {"name": "Strict-Transport-Security", "present": True, "risk": "HSTS", "value": "max-age=31536000"},
-                {"name": "X-Frame-Options", "present": False, "risk": "Clickjacking", "value": None},
-            ],
-            "issues": ["Тестовый режим - сканирование отключено"],
-            "security_score": 50,
-            "total_headers": 7,
-            "error": False
-        }
+import requests
+from flask import Flask, request, render_template, jsonify
+from flask_cors import CORS
+from scanner import scan_headers
 
 app = Flask(__name__)
+CORS(app)  # Разрешаем CORS для API
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -40,11 +23,29 @@ def index():
     except Exception as e:
         return f"Ошибка: {str(e)}", 500
 
+
+@app.route("/api/scan", methods=["POST"])
+def api_scan():
+    """API endpoint для сканирования"""
+    data = request.get_json()
+    url = data.get('url')
+
+    if not url:
+        return jsonify({"error": "URL не указан"}), 400
+
+    try:
+        results = scan_headers(url)
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/test-scan")
 def test_scan():
     """Тест сканирования"""
     results = scan_headers("https://google.com")
-    return results  # Возвращаем сырые данные для диагностики
+    return jsonify(results)
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
