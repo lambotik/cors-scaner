@@ -72,17 +72,14 @@ def print_summary(results: dict, output_format: str, output_path: str) -> None:
 def setup_argparse() -> argparse.ArgumentParser:
     """
     Настраивает парсер аргументов командной строки.
-    Returns:
-        argparse.ArgumentParser: Настроенный парсер аргументов
     """
     parser = argparse.ArgumentParser(
-        description="CORS Scanner - Анализ безопасности HTTP-заголовков",
+        description="CORS Scanner - Анализ безопасности HTTP-заголовков включая CORS политику",
         epilog="""
 Примеры использования:
   %(prog)s https://example.com
-  %(prog)s https://google.com --html google_report.html
-  %(prog)s https://yandex.ru --format text --output scan_result.txt
-  %(prog)s https://github.com --format both --verbose
+  %(prog)s https://api.service.com --format text  # Проверка CORS API
+  %(prog)s https://site.com --format both --verbose
         """,
         formatter_class=argparse.RawDescriptionHelpFormatter
     )

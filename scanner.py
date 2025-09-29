@@ -20,6 +20,7 @@ def scan_headers(url: str) -> Dict[str, Any]:
             - security_score (int): Оценка безопасности в процентах (0-100)
             - total_headers (int): Общее количество проверяемых заголовков
             - error (bool): Флаг наличия ошибки при сканировании
+
     Raises:
         Не выбрасывает исключения напрямую - все ошибки обрабатываются внутри функции
         и возвращаются в поле 'error' результата.
@@ -39,7 +40,7 @@ def scan_headers(url: str) -> Dict[str, Any]:
         "headers": [],
         "issues": [],
         "security_score": 0,
-        "total_headers": 8,
+        "total_headers": 10,  # Увеличили количество проверяемых заголовков
         "error": False
     }
 
@@ -78,16 +79,22 @@ def scan_headers(url: str) -> Dict[str, Any]:
             "X-Frame-Options": "Clickjacking",
             "X-Content-Type-Options": "MIME-sniffing",
             "Referrer-Policy": "Утечка реферера",
-            "Permissions-Policy": "Доступ к функциям браузera",
+            "Permissions-Policy": "Доступ к функциям браузера",
+            "Access-Control-Allow-Origin": "CORS политика",
+            "Access-Control-Allow-Methods": "Разрешенные CORS методы",
+            "Access-Control-Allow-Headers": "Разрешенные CORS заголовки",
+            "Access-Control-Allow-Credentials": "CORS с учетными данными",
             "X-XSS-Protection": "Защита от XSS",
             "Cache-Control": "Кеширование чувствительных данных"
         }
 
         found_count: int = 0
+
         # Проверяем каждый security-заголовок из нашего списка
         for header, risk in headers_to_check.items():
             present: bool = header in response_headers
             header_value: Optional[str] = response_headers.get(header)
+
             # Добавляем информацию о заголовке в результаты
             result["headers"].append({
                 "name": header,
@@ -95,6 +102,7 @@ def scan_headers(url: str) -> Dict[str, Any]:
                 "value": header_value,
                 "risk": risk
             })
+
             if present:
                 found_count += 1
                 print(f"✅ Найден заголовок: {header} = {header_value[:100] if header_value else 'None'}...")
@@ -106,22 +114,44 @@ def scan_headers(url: str) -> Dict[str, Any]:
                         result["issues"].append(f"⚠️ {header} содержит 'unsafe-inline' - снижает безопасность")
                     if "'unsafe-eval'" in header_value:
                         result["issues"].append(f"⚠️ {header} содержит 'unsafe-eval' - снижает безопасность")
+
                 elif header == "Strict-Transport-Security":
                     # Проверяем корректность настройки HSTS
                     if "max-age=0" in header_value:
                         result["issues"].append(f"⚠️ {header} имеет max-age=0 - HSTS отключен")
+
                 elif header == "X-Frame-Options":
                     # Проверяем безопасные значения X-Frame-Options
                     if header_value.upper() not in ["DENY", "SAMEORIGIN"]:
                         result["issues"].append(f"⚠️ {header} имеет небезопасное значение: {header_value}")
+
+                elif header == "Access-Control-Allow-Origin":
+                    # Анализ CORS политики
+                    if header_value == "*":
+                        result["issues"].append(f"🚨 {header} = * - CORS открыт для всех доменов!")
+                    elif header_value and "," in header_value:
+                        result["issues"].append(f"⚠️ {header} содержит несколько доменов: {header_value}")
+
+                elif header == "Access-Control-Allow-Credentials":
+                    # Проверка сочетания с Access-Control-Allow-Origin
+                    if header_value.lower() == "true":
+                        origin_header = response_headers.get("Access-Control-Allow-Origin")
+                        if origin_header == "*":
+                            result["issues"].append(f"🚨 {header}=true с Access-Control-Allow-Origin=* - небезопасно!")
+
             else:
                 # Заголовок отсутствует - добавляем в список проблем
-                result["issues"].append(f"❌ {header} отсутствует — {risk}")
+                if header in ["Content-Security-Policy", "Strict-Transport-Security", "X-Frame-Options"]:
+                    result["issues"].append(f"❌ {header} отсутствует — {risk}")
+                else:
+                    result["issues"].append(f"⚠️ {header} отсутствует — {risk}")
                 print(f"❌ Отсутствует заголовок: {header}")
+
         # Вычисляем общий показатель безопасности в процентах
         result["security_score"] = int((found_count / len(headers_to_check)) * 100)
         print(f"📊 Сканирование завершено. Score: {result['security_score']}%")
         print(f"🔍 Найдено заголовков: {found_count}/{len(headers_to_check)}")
+
         # Добавляем общую текстовую оценку на основе score
         if result["security_score"] >= 80:
             result["issues"].insert(0, "✅ Отличная безопасность заголовков!")
@@ -129,28 +159,33 @@ def scan_headers(url: str) -> Dict[str, Any]:
             result["issues"].insert(0, "⚠️ Средний уровень безопасности")
         else:
             result["issues"].insert(0, "🚨 Низкий уровень безопасности")
+
     except requests.exceptions.Timeout:
         # Обработка таймаута запроса
         error_msg = "⏰ Таймаут запроса (более 15 секунд)"
         print(error_msg)
         result["error"] = True
         result["issues"].append(error_msg)
+
     except requests.exceptions.ConnectionError:
         # Обработка ошибок подключения (DNS, недоступный хост и т.д.)
         error_msg = "🔌 Ошибка подключения к сайту"
         print(error_msg)
         result["error"] = True
         result["issues"].append(error_msg)
+
     except requests.exceptions.RequestException as e:
         # Общая обработка ошибок requests
         error_msg = f"🌐 Ошибка сети: {str(e)}"
         print(error_msg)
         result["error"] = True
         result["issues"].append(error_msg)
+
     except Exception as e:
         # Перехват любых непредвиденных ошибок
         error_msg = f"⚙️ Неожиданная ошибка: {str(e)}"
         print(error_msg)
         result["error"] = True
         result["issues"].append(error_msg)
+
     return result

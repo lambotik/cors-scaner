@@ -5,39 +5,29 @@ from typing import Dict, List, Optional, Any
 def print_report(headers: Dict[str, Optional[str]], issues: List[str]) -> None:
     """
     Выводит красивый консольный отчет о результатах сканирования безопасности.
-    Использует colorama для цветового форматирования вывода, делая отчет
-    более читаемым и визуально привлекательным.
-    Args:
-        headers (Dict[str, Optional[str]]): Словарь заголовков безопасности,
-            где ключ - название заголовка, значение - его значение или None если отсутствует
-        issues (List[str]): Список выявленных проблем и предупреждений
-    Returns:
-        None: Функция только выводит данные в консоль
-    Example:
-        🔐 Заголовки безопасности:
-        Content-Security-Policy: default-src 'self'
-        X-Frame-Options: ❌ Отсутствует
-
-        ⚠️ Выявленные проблемы:
-        ❌ X-Frame-Options отсутствует — Clickjacking
     """
-    # Вывод секции с заголовками безопасности
     print(Fore.CYAN + "\n🔐 Заголовки безопасности:" + Style.RESET_ALL)
+
     for header_name, header_value in headers.items():
-        # Форматируем статус: значение заголовка или сообщение об отсутствии
         status = header_value if header_value else "❌ Отсутствует"
 
-        # Цветовое выделение присутствующих и отсутствующих заголовков
-        if header_value:
+        # Цветовое выделение для CORS заголовков
+        if header_name.startswith("Access-Control-"):
+            if header_value == "*" and header_name == "Access-Control-Allow-Origin":
+                print(f"{Fore.RED}{header_name}: {status}{Style.RESET_ALL}")
+            else:
+                print(f"{Fore.BLUE}{header_name}: {status}{Style.RESET_ALL}")
+        elif header_value:
             print(f"{Fore.GREEN}{header_name}: {status}{Style.RESET_ALL}")
         else:
             print(f"{Fore.RED}{header_name}: {status}{Style.RESET_ALL}")
-    # Вывод секции с выявленными проблемами
+
     print(Fore.YELLOW + "\n⚠️ Выявленные проблемы:" + Style.RESET_ALL)
 
     for issue in issues:
-        # Цветовое кодирование типов проблем
-        if issue.startswith("❌"):
+        if issue.startswith("🚨"):
+            print(f"{Fore.RED}{issue}{Style.RESET_ALL}")
+        elif issue.startswith("❌"):
             print(f"{Fore.RED}{issue}{Style.RESET_ALL}")
         elif issue.startswith("⚠️"):
             print(f"{Fore.YELLOW}{issue}{Style.RESET_ALL}")
