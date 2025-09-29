@@ -5,7 +5,7 @@ from scanner import scan_headers
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-app = Flask(__name__, static_folder='static')
+app = Flask(__name__, static_folder='static', template_folder='templates')
 # Включаем CORS для всех маршрутов, чтобы разрешить кросс-доменные запросы
 CORS(app)
 
@@ -25,7 +25,7 @@ def favicon():
 
 
 @app.route("/", methods=["GET", "POST"])
-@limiter.limit("1 per minute")
+@limiter.limit("10 per minute")  # Увеличил лимит для удобства тестирования
 def index():
     """
     Главная страница приложения.
@@ -34,18 +34,20 @@ def index():
         if request.method == "POST":
             url = request.form.get("url")
             if not url:
-                return "Ошибка: URL не указан", 400
+                return render_template("index.html", error="Ошибка: URL не указан")
             print(f"🔍 Сканируем URL: {url}")
             results = scan_headers(url)
-            print(f"📊 Результаты: {results}")
+            print(f"📊 Результаты получены, оценка: {results.get('security_score', 0)}%")
+
+            # Передаем данные в шаблон правильно
             return render_template("report.html", **results)
         return render_template("index.html")
     except Exception as e:
-        return f"Ошибка: {str(e)}", 500
+        return render_template("index.html", error=f"Ошибка: {str(e)}")
 
 
 @app.route("/api/scan", methods=["POST"])
-@limiter.limit("1 per minute")
+@limiter.limit("5 per minute")
 def api_scan():
     """
     REST API endpoint для программного сканирования заголовков.
@@ -68,7 +70,7 @@ def api_scan():
 
 
 @app.route("/test-scan")
-@limiter.limit("1 per minute")
+@limiter.limit("2 per minute")
 def test_scan():
     """
     Тестовый маршрут для проверки работы сканера.
@@ -82,17 +84,28 @@ def test_scan():
 
 @app.errorhandler(429)
 def ratelimit_handler(e):
-    return jsonify({
-        "error": "Слишком много запросов",
-        "message": "Пожалуйста, подождите перед следующим сканированием",
-        "limits": {
-            "form": "1 запросов в минуту",
-            "api": "1 запросов в минуту",
-            "test": "1 запроса в минуту"
+    return render_template(
+        "error.html",
+        error="Слишком много запросов",
+        message="Пожалуйста, подождите перед следующим сканированием",
+        limits={
+            "form": "10 запросов в минуту",
+            "api": "5 запросов в минуту",
+            "test": "2 запроса в минуту"
         }
-    }), 429
+    ), 429
+
+
+# Создаем простой шаблон для ошибок
+@app.route('/error')
+def error_test():
+    return render_template("error.html", error="Тестовая ошибка", message="Это тестовое сообщение об ошибке")
 
 
 if __name__ == "__main__":
+    # Создаем папку templates если её нет
+    if not os.path.exists('templates'):
+        os.makedirs('templates')
+
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False)
+    app.run(host="0.0.0.0", port=port, debug=True)
