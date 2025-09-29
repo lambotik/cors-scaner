@@ -7,8 +7,8 @@ app = Flask(__name__)
 def index():
     if request.method == "POST":
         url = request.form.get("url")
-        results = scan_headers(url)  # ← СОХРАНИТЬ РЕЗУЛЬТАТ!
-        return render_template("report.html", **results)
+        results = scan_headers(url)  # ← сохраняем результаты сканирования
+        return render_template("report.html", **results)  # ← используем Jinja2 шаблон
     return render_template("index.html")
 
 if __name__ == "__main__":

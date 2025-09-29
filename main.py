@@ -5,7 +5,7 @@ import os
 import sys
 
 def check_template():
-    if not os.path.exists("templates/report.html.j2"):
+    if not os.path.exists("templates/report.html"):
         print("❌ Шаблон отчёта не найден.")
         sys.exit(1)
 

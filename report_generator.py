@@ -2,7 +2,7 @@ from jinja2 import Environment, FileSystemLoader
 
 def generate_html_report_jinja(scan_results, output_path="report.html"):
     env = Environment(loader=FileSystemLoader("templates"))
-    template = env.get_template("report.html.j2")
+    template = env.get_template("report.html")
 
     rendered = template.render(
         target=scan_results["target"],
