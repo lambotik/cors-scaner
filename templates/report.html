@@ -103,20 +103,6 @@
             border: 1px solid #e2e8f0;
         }
 
-        .rate-limit-info {
-            background: #fff7ed;
-            border: 1px solid #fed7aa;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 20px 0;
-            text-align: center;
-        }
-
-        .rate-limit-info .icon {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
-        }
-
         .category-badge {
             display: inline-block;
             padding: 4px 8px;
@@ -323,18 +309,6 @@
     <!-- Header -->
     <div class="header">
         <h1>🔐 Отчёт безопасности HTTP-заголовков</h1>
-    </div>
-
-    <!-- Rate Limit Information -->
-    <div class="rate-limit-info">
-        <div class="icon">⏰</div>
-        <h3 style="margin: 0 0 8px 0; color: var(--warning);">Информация о лимитах запросов</h3>
-        <p style="margin: 0; color: var(--gray-600);">
-            Для защиты от злоупотреблений установлены следующие ограничения:<br>
-            <strong>Форма: 10 запросов в минуту</strong> •
-            <strong>API: 5 запросов в минуту</strong> •
-            <strong>Тестовый режим: 2 запроса в минуту</strong>
-        </p>
     </div>
 
     <!-- Score Section -->
@@ -614,7 +588,7 @@
             🔄 Новое сканирование
         </a>
         <p style="color: var(--gray-600); margin-top: 10px; font-size: 0.9rem;">
-            Следующий запрос будет доступен согласно установленным лимитам
+            Ограничений на количество запросов нет
         </p>
     </div>
 
