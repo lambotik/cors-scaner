@@ -2,13 +2,18 @@ import os
 from flask import Flask, request, render_template, jsonify
 from flask_cors import CORS
 from scanner import scan_headers
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 
 app = Flask(__name__)
 # Включаем CORS для всех маршрутов, чтобы разрешить кросс-доменные запросы
 CORS(app)
 
+limiter = Limiter(app, key_func=get_remote_address)
+
 
 @app.route("/", methods=["GET", "POST"])
+@limiter.limit("2 per minute")  # Более разумный лимит для формы
 def index():
     """
     Главная страница приложения.
@@ -37,6 +42,7 @@ def index():
 
 
 @app.route("/api/scan", methods=["POST"])
+@limiter.limit("5 per minute")  # Отдельный лимит для API
 def api_scan():
     """
     REST API endpoint для программного сканирования заголовков.
@@ -54,10 +60,15 @@ def api_scan():
     """
     # Получаем JSON данные из запроса
     data = request.get_json()
+
+    if not data:
+        return jsonify({"error": "JSON данные не предоставлены"}), 400
+
     url = data.get('url')
 
     if not url:
         return jsonify({"error": "URL не указан"}), 400
+
     try:
         # Выполняем сканирование и возвращаем JSON результат
         results = scan_headers(url)
@@ -68,6 +79,7 @@ def api_scan():
 
 
 @app.route("/test-scan")
+@limiter.limit("2 per minute")  # Лимит для тестового маршрута
 def test_scan():
     """
     Тестовый маршрут для проверки работы сканера.
@@ -76,8 +88,22 @@ def test_scan():
     Returns:
         jsonify: Результаты сканирования google.com
     """
-    results = scan_headers("https://google.com")
-    return jsonify(results)
+    try:
+        results = scan_headers("https://google.com")
+        return jsonify(results)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    """
+    Обработчик превышения лимита запросов.
+    """
+    return jsonify({
+        "error": "Слишком много запросов",
+        "message": "Пожалуйста, подождите перед следующим сканированием"
+    }), 429
 
 
 if __name__ == "__main__":
