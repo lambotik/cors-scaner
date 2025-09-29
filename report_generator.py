@@ -7,23 +7,16 @@ import jinja2
 from typing import Dict, Any
 
 
-def generate_html_report(scan_results: Dict[str, Any], output_path: str = "report.html") -> bool:
+def generate_html_report(scan_results: Dict[str, Any], output_path: str = "security_report.html") -> bool:
     """
-    Генерирует HTML отчет из результатов сканирования.
-
-    Args:
-        scan_results: Результаты сканирования
-        output_path: Путь для сохранения HTML файла
-
-    Returns:
-        bool: True если успешно, False в случае ошибки
+    Генерирует HTML отчет в новом формате.
     """
     try:
         # Настройка Jinja2 environment
-        template_loader = jinja2.FileSystemLoader(searchpath="./templates")
+        template_loader = jinja2.FileSystemLoader(searchpath="./")
         template_env = jinja2.Environment(loader=template_loader)
 
-        # Загрузка шаблона
+        # Загрузка шаблона (теперь он в основном файле)
         template = template_env.get_template("report.html")
 
         # Рендеринг шаблона с данными
