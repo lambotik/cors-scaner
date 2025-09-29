@@ -2,28 +2,145 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Отчёт CORS-сканера</title>
+    <title>Отчёт безопасности - CORS-сканер</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <style>
-        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; max-width: 1200px; margin: 0 auto; }
-        h1, h2 { color: #333; }
-        .score { font-size: 24px; font-weight: bold; padding: 10px; border-radius: 5px; text-align: center; }
-        .score-high { background: #d4edda; color: #155724; }
-        .score-medium { background: #fff3cd; color: #856404; }
-        .score-low { background: #f8d7da; color: #721c24; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
-        th, td { border: 1px solid #ccc; padding: 12px; text-align: left; }
-        th { background: #e9ecef; }
+        /* Сохраняем существующие стили и добавляем новые */
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .score {
+            font-size: 28px;
+            font-weight: bold;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .score-high { background: #d4edda; color: #155724; border: 3px solid #28a745; }
+        .score-medium { background: #fff3cd; color: #856404; border: 3px solid #ffc107; }
+        .score-low { background: #f8d7da; color: #721c24; border: 3px solid #dc3545; }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .info-card {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 15px;
+            text-align: left;
+        }
+
+        th {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
         .missing { color: #dc3545; font-weight: bold; }
         .ok { color: #28a745; font-weight: bold; }
         .warning { color: #ffc107; font-weight: bold; }
-        .header-value { font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 2px 4px; border-radius: 3px; }
-        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; }
-        .back-link { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
-        .csp-analysis { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
+
+        .header-value {
+            font-family: monospace;
+            font-size: 12px;
+            background: #f8f9fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .issues-section {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .back-link:hover {
+            transform: translateY(-2px);
+            color: white;
+            text-decoration: none;
+        }
+
+        .csp-analysis {
+            background: #e7f3ff;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #007bff;
+        }
     </style>
 </head>
 <body>
-    <h1>🔐 Отчёт безопасности заголовков</h1>
+    <div class="header">
+        <h1>
+            <span>🔐</span>
+            Отчёт безопасности заголовков
+        </h1>
+    </div>
 
     {% if error %}
     <div class="error">
@@ -41,9 +158,20 @@
         Оценка безопасности: {{ security_score }}%
     </div>
 
-    <p><strong>🔗 Цель:</strong> {{ target }}</p>
-    <p><strong>📅 Дата:</strong> {{ date }}</p>
-    <p><strong>📊 Заголовков проверено:</strong> {{ total_headers }}</p>
+    <div class="info-grid">
+        <div class="info-card">
+            <strong>🔗 Цель:</strong><br>
+            {{ target }}
+        </div>
+        <div class="info-card">
+            <strong>📅 Дата:</strong><br>
+            {{ date }}
+        </div>
+        <div class="info-card">
+            <strong>📊 Проверено:</strong><br>
+            {{ total_headers }} заголовков
+        </div>
+    </div>
 
     <h2>🛡️ Заголовки безопасности</h2>
     <table>
@@ -71,7 +199,7 @@
         {% endfor %}
     </table>
 
-    <!-- ДОБАВЬТЕ ЭТОТ БЛОК ЗДЕСЬ -->
+    <!-- CSP Analysis Block -->
     {% for header in headers %}
         {% if header.name == "Content-Security-Policy" and header.present and header.warnings %}
         <div class="csp-analysis">
@@ -86,18 +214,22 @@
         {% endif %}
     {% endfor %}
 
-    <h2>⚠️ Выявленные проблемы</h2>
-    {% if issues %}
-    <ul>
-        {% for issue in issues %}
-        <li class="{{ 'warning' if '⚠️' in issue else '' }}">{{ issue }}</li>
-        {% endfor %}
-    </ul>
-    {% else %}
-    <p>✅ Проблем не обнаружено! Отличная безопасность!</p>
-    {% endif %}
+    <div class="issues-section">
+        <h2>⚠️ Выявленные проблемы</h2>
+        {% if issues %}
+        <ul>
+            {% for issue in issues %}
+            <li class="{{ 'warning' if '⚠️' in issue else '' }}">{{ issue }}</li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p style="color: #28a745; font-weight: bold;">✅ Проблем не обнаружено! Отличная безопасность!</p>
+        {% endif %}
+    </div>
     {% endif %}
 
-    <a href="/" class="back-link">← Новое сканирование</a>
+    <a href="/" class="back-link">
+        ← Новое сканирование
+    </a>
 </body>
 </html>

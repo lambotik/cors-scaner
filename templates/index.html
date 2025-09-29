@@ -3,13 +3,115 @@
 <head>
     <meta charset="UTF-8">
     <title>CORS-сканер</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 500px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            border-color: #667eea;
+            outline: none;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        .examples {
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+        .examples ul {
+            list-style: none;
+            padding: 0;
+        }
+        .examples li {
+            margin: 5px 0;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .examples li:hover {
+            background: #f0f0f0;
+        }
+    </style>
 </head>
 <body>
-    <h1>🔍 Проверка заголовков безопасности</h1>
-    <form method="POST">
-        <label for="url">Введите URL:</label>
-        <input type="text" name="url" id="url" required>
-        <button type="submit">Сканировать</button>
-    </form>
+    <div class="container">
+        <h1>
+            <span>🔐</span>
+            CORS-сканер
+        </h1>
+        <p>Проверьте безопасность HTTP-заголовков любого сайта</p>
+
+        <form method="POST">
+            <div class="form-group">
+                <label for="url">Введите URL для проверки:</label>
+                <input type="text" name="url" id="url" placeholder="https://example.com" required>
+            </div>
+            <button type="submit">🔍 Сканировать</button>
+        </form>
+
+        <div class="examples">
+            <p><strong>Примеры для теста:</strong></p>
+            <ul>
+                <li onclick="document.getElementById('url').value='https://google.com'">🌐 google.com</li>
+                <li onclick="document.getElementById('url').value='https://github.com'">💻 github.com</li>
+                <li onclick="document.getElementById('url').value='https://yandex.ru'">🔍 yandex.ru</li>
+            </ul>
+        </div>
+    </div>
 </body>
 </html>
