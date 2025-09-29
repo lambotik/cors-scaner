@@ -54,8 +54,19 @@ class SecurityScanner:
             # Собираем все заголовки
             all_headers = self._collect_all_headers(main_response, cors_response)
 
-            # Анализируем заголовки
-            analysis = get_security_headers_analysis(all_headers)
+            # Анализируем заголовки - ОБРАБАТЫВАЕМ ОШИБКИ
+            try:
+                analysis = get_security_headers_analysis(all_headers)
+            except Exception as e:
+                print(f"⚠️ Ошибка анализа заголовков: {e}")
+                analysis = {
+                    'headers': [],
+                    'issues': [f"⚠️ Ошибка анализа: {str(e)}"],
+                    'security_score': 0,
+                    'total_headers': 0,
+                    'present_headers': 0,
+                    'critical_headers_present': 0
+                }
 
             # Формируем полный результат
             scan_result = self._build_result(
@@ -66,6 +77,7 @@ class SecurityScanner:
             return scan_result
 
         except Exception as e:
+            print(f"❌ Ошибка сканирования: {e}")
             return self._build_error_result(target_url, str(e), start_time)
 
     def _normalize_url(self, input_url: str) -> str:
@@ -259,32 +271,27 @@ class SecurityScanner:
         """
         scan_duration = round(time.time() - start_time, 2)
 
-        # Подготовка данных для шаблонов
-        critical_missing = []
-        cors_missing = []
-        privacy_missing = []
-        present_headers_names = []
-
-        for header in analysis['headers']:
-            if header['present']:
-                present_headers_names.append(header['name'])
-            else:
-                if header['critical'] and 'CORS' not in header['name'] and 'Access-Control' not in header['name']:
-                    critical_missing.append(header['name'])
-                elif 'CORS' in header['name'] or 'Access-Control' in header['name']:
-                    cors_missing.append(header['name'])
-                else:
-                    privacy_missing.append(header['name'])
+        # УБЕДИТЕСЬ, ЧТО analysis СОДЕРЖИТ ВСЕ НЕОБХОДИМЫЕ ПОЛЯ
+        if not analysis or 'issues' not in analysis:
+            # Если анализ не удался, создаем базовую структуру
+            analysis = {
+                'headers': [],
+                'issues': ["⚠️ Не удалось проанализировать заголовки"],
+                'security_score': 0,
+                'total_headers': 0,
+                'present_headers': 0,
+                'critical_headers_present': 0
+            }
 
         final_result = {
             'target': scanned_url,
             'date': time.strftime('%Y-%m-%d %H:%M:%S'),
-            'security_score': analysis['security_score'],
-            'headers': analysis['headers'],
-            'issues': analysis['issues'],
-            'total_headers': analysis['total_headers'],
-            'present_headers': analysis['present_headers'],
-            'critical_headers_present': analysis['critical_headers_present'],
+            'security_score': analysis.get('security_score', 0),
+            'headers': analysis.get('headers', []),
+            'issues': analysis.get('issues', []),
+            'total_headers': analysis.get('total_headers', 0),
+            'present_headers': analysis.get('present_headers', 0),
+            'critical_headers_present': analysis.get('critical_headers_present', 0),
             'scan_duration': scan_duration,
             'http_status': response.status_code,
             'final_url': response.url,
@@ -295,12 +302,6 @@ class SecurityScanner:
                 'content_type': response.headers.get('Content-Type')
             },
             'raw_headers': dict(response.headers),
-            'template_data': {
-                'critical_missing': critical_missing,
-                'cors_missing': cors_missing,
-                'privacy_missing': privacy_missing,
-                'present_headers_names': present_headers_names
-            },
             'error': None
         }
 
@@ -571,7 +572,44 @@ def get_supported_headers() -> List[Dict[str, str]]:
             'reference': 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials'
         }
     ]
+def _collect_all_headers(self, main_response: requests.Response,
+                         cors_results: Dict[str, Any]) -> Dict[str, str]:
+    """
+    Собирает все заголовки из различных запросов.
 
+    Args:
+        main_response: Основной GET ответ
+        cors_results: Результаты CORS запросов
+
+    Returns:
+        Dict со всеми заголовками
+    """
+    headers = {}
+
+    # Заголовки из основного запроса
+    for key, value in main_response.headers.items():
+        headers[key] = value
+
+    print(f"📋 Заголовки от сервера: {list(headers.keys())}")
+
+    # Заголовки из OPTIONS запроса (CORS preflight)
+    if cors_results['options']:
+        for key, value in cors_results['options'].headers.items():
+            if key.startswith('Access-Control-'):
+                headers[key] = value
+
+    # Заголовки из CORS запроса
+    if cors_results['cors_request']:
+        for key, value in cors_results['cors_request'].headers.items():
+            if key.startswith('Access-Control-'):
+                headers[key] = value
+
+    # Нормализуем названия заголовков (регистронезависимые)
+    normalized_headers = {}
+    for key, value in headers.items():
+        normalized_headers[key.lower()] = value
+
+    return self._denormalize_headers(normalized_headers)
 
 # Пример использования
 if __name__ == "__main__":
@@ -615,3 +653,25 @@ if __name__ == "__main__":
     for header in headers_info:
         critical = "🔴" if header['critical'] else "🟡"
         print(f"   {critical} {header['name']}: {header['description']}")
+
+def debug_scan(url: str):
+    """
+    Функция для отладки сканирования
+    """
+    print(f"🔍 Отладочное сканирование: {url}")
+    try:
+        scanner = SecurityScanner(timeout=10)
+        result = scanner.scan_url(url)
+        print("📊 Результат сканирования:")
+        print(f"  - target: {result.get('target')}")
+        print(f"  - error: {result.get('error')}")
+        print(f"  - security_score: {result.get('security_score')}")
+        print(f"  - issues: {result.get('issues')}")
+        print(f"  - headers: {len(result.get('headers', []))}")
+        print(f"  - keys: {list(result.keys())}")
+        return result
+    except Exception as e:
+        print(f"❌ Ошибка: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
