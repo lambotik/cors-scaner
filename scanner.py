@@ -1,5 +1,6 @@
 import requests
 from datetime import datetime
+from requests.structures import CaseInsensitiveDict
 
 
 def scan_headers(url):
@@ -18,34 +19,42 @@ def scan_headers(url):
     try:
         print("🔗 Выполняем HTTP запрос...")
         response = requests.get(url, timeout=10)
+        headers = CaseInsensitiveDict(response.headers)  # Регистронезависимый словарь
+
         print(f"✅ Ответ получен, статус: {response.status_code}")
 
         # Проверяем основные заголовки
-        headers_to_check = [
-            "Content-Security-Policy",
-            "Strict-Transport-Security",
-            "X-Frame-Options",
-            "X-Content-Type-Options",
-            "Referrer-Policy",
-            "Permissions-Policy"
-        ]
+        headers_to_check = {
+            "Content-Security-Policy": "Уязвимость к XSS",
+            "Strict-Transport-Security": "Downgrade-атаки через HTTP",
+            "X-Frame-Options": "Clickjacking",
+            "X-Content-Type-Options": "MIME-sniffing",
+            "Referrer-Policy": "Утечка реферера",
+            "Permissions-Policy": "Доступ к функциям браузера"
+        }
 
-        for header in headers_to_check:
-            present = header in response.headers
+        for header, risk in headers_to_check.items():
+            present = header in headers
+            header_value = headers.get(header)
+
             result["headers"].append({
                 "name": header,
                 "present": present,
-                "value": response.headers.get(header),
-                "risk": "Риск безопасности"
+                "value": header_value,
+                "risk": risk
             })
-            if not present:
-                result["issues"].append(f"{header} отсутствует")
+
+            if present:
+                print(f"✅ Найден заголовок: {header} = {header_value[:50]}...")
+            else:
+                result["issues"].append(f"{header} отсутствует — {risk}")
 
         # Считаем score
         found = sum(1 for h in result["headers"] if h["present"])
         result["security_score"] = int((found / len(headers_to_check)) * 100)
 
         print(f"📊 Сканирование завершено. Score: {result['security_score']}%")
+        print(f"🔍 Найдено заголовков: {found}/{len(headers_to_check)}")
 
     except Exception as e:
         print(f"❌ Ошибка при сканировании: {e}")
