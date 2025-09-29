@@ -9,11 +9,16 @@ app = Flask(__name__)
 # Включаем CORS для всех маршрутов, чтобы разрешить кросс-доменные запросы
 CORS(app)
 
-limiter = Limiter(app, key_func=get_remote_address)
+# Правильная инициализация Limiter
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"]
+)
 
 
 @app.route("/", methods=["GET", "POST"])
-@limiter.limit("2 per minute")  # Более разумный лимит для формы
+@limiter.limit("10 per minute")  # Более разумный лимит для формы
 def index():
     """
     Главная страница приложения.
@@ -102,8 +107,21 @@ def ratelimit_handler(e):
     """
     return jsonify({
         "error": "Слишком много запросов",
-        "message": "Пожалуйста, подождите перед следующим сканированием"
+        "message": "Пожалуйста, подождите перед следующим сканированием",
+        "limits": {
+            "form": "10 запросов в минуту",
+            "api": "5 запросов в минуту",
+            "test": "2 запроса в минуту"
+        }
     }), 429
+
+
+# Добавим также обработчик для HTML страниц при 429 ошибке
+@app.errorhandler(429)
+def handle_ratelimit_html(e):
+    if request.accept_mimetypes.accept_html:
+        return render_template('rate_limit.html'), 429
+    return ratelimit_handler(e)
 
 
 if __name__ == "__main__":

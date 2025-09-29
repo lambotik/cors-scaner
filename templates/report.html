@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Отчёт безопасности заголовков</title>
+    <link rel="icon" type="image/x-icon" href="data:image/x-icon;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQEAYAAABPYyMiAAAABmJLR0T///////8JWPfcAAAACXBIWXMAAABIAAAASABGyWs+AAAAF0lEQVRIx2NgGAWjYBSMglEwCkYAACAAAf//BA0YpZ4AAAAASUVORK5CYII=">
     <style>
         :root {
             --primary: #2563eb;
@@ -70,6 +71,20 @@
         .info-value {
             font-size: 1rem;
             font-weight: 600;
+        }
+
+        .rate-limit-info {
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .rate-limit-info .icon {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
         }
 
         .section-title {
@@ -183,6 +198,22 @@
             font-size: 0.9rem;
         }
 
+        .new-scan-btn {
+            display: inline-block;
+            background: var(--primary);
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 20px;
+            transition: background 0.2s;
+        }
+
+        .new-scan-btn:hover {
+            background: #1d4ed8;
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 10px;
@@ -203,6 +234,18 @@
     <!-- Header -->
     <div class="header">
         <h1>🔐 Отчёт безопасности HTTP-заголовков</h1>
+    </div>
+
+    <!-- Rate Limit Information -->
+    <div class="rate-limit-info">
+        <div class="icon">⏰</div>
+        <h3 style="margin: 0 0 8px 0; color: var(--warning);">Информация о лимитах запросов</h3>
+        <p style="margin: 0; color: var(--gray-600);">
+            Для защиты от злоупотреблений установлены следующие ограничения:<br>
+            <strong>Форма: 10 запросов в минуту</strong> •
+            <strong>API: 5 запросов в минуту</strong> •
+            <strong>Тестовый режим: 2 запроса в минуту</strong>
+        </p>
     </div>
 
     <!-- Score Section -->
@@ -319,10 +362,38 @@
         </ul>
     </div>
 
+    <!-- Actions -->
+    <div style="text-align: center; margin: 40px 0;">
+        <a href="/" class="new-scan-btn">
+            🔄 Новое сканирование
+        </a>
+        <p style="color: var(--gray-600); margin-top: 10px; font-size: 0.9rem;">
+            Следующий запрос будет доступен согласно установленным лимитам
+        </p>
+    </div>
+
     <!-- Footer -->
     <div class="footer">
         <p>Отчёт сгенерирован автоматически CORS Security Scanner</p>
         <p>Время создания: {{ date }}</p>
     </div>
+
+    <script>
+        // Добавляем информацию о времени до следующего запроса
+        document.addEventListener('DOMContentLoaded', function() {
+            const scanTime = new Date('{{ date }}').getTime();
+            const now = new Date().getTime();
+            const timeDiff = now - scanTime;
+
+            // Показываем информацию о времени, если прошло меньше 2 минут
+            if (timeDiff < 120000) { // 2 минуты в миллисекундах
+                const timeLeft = Math.ceil((120000 - timeDiff) / 1000);
+                const timeInfo = document.createElement('div');
+                timeInfo.style.cssText = 'text-align: center; margin: 10px 0; padding: 10px; background: #f0f9ff; border-radius: 6px;';
+                timeInfo.innerHTML = `⏳ Следующий запрос будет доступен через: <strong>${timeLeft} секунд</strong>`;
+                document.querySelector('.new-scan-btn').parentNode.insertBefore(timeInfo, document.querySelector('.new-scan-btn').nextSibling);
+            }
+        });
+    </script>
 </body>
 </html>
