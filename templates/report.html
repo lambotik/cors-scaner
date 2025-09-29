@@ -37,18 +37,47 @@
             border-radius: 8px;
             font-size: 16px;
             cursor: pointer;
-            width: 100%;
             transition: transform 0.2s;
             font-weight: bold;
             margin: 25px 0;
             text-decoration: none;
-            display: inline-block;
+            display: block;
             text-align: center;
+            width: auto;
+            max-width: 300px;
+            margin-left: auto;
+            margin-right: auto;
         }
         .new-scan-btn:hover {
             transform: translateY(-2px);
             color: white;
             text-decoration: none;
+        }
+
+        /* Статистика сканирования в столбик */
+        .scan-stats {
+            text-align: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .scan-stats strong {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .stats-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            text-align: left;
+            display: inline-block;
+        }
+        .stats-list li {
+            margin: 5px 0;
+            padding: 3px 0;
         }
 
         /* Остальные стили остаются без изменений */
@@ -198,268 +227,271 @@
     </style>
 </head>
 <body>
-<div class="container">
-    <h1>🔐 Отчёт безопасности HTTP-заголовков</h1>
+    <div class="container">
+        <h1>🔐 Отчёт безопасности HTTP-заголовков</h1>
 
-    <!-- Статус безопасности -->
-    <div class="security-status">
-        <div class="status-card" style="border-left-color: #ffc107;">
-            <div class="status-score">{{ security_score }}%</div>
-            <div class="status-badge" style="background: #ffc107; color: black;">🟠 Требует улучшений</div>
-            <div>На основе анализа {{ total_headers }} заголовков безопасности</div>
-        </div>
-    </div>
-
-    <!-- Информация о сканировании -->
-    <div class="scan-info">
-        <div class="info-item">
-            <strong>🎯 Цель сканирования</strong><br>
-            {{ target_url }}<br>
-            {% if final_url %}
-            <small>Финальный URL: {{ final_url }}</small>
-            {% endif %}
-        </div>
-        <div class="info-item">
-            <strong>{{ configured_headers }}/{{ total_headers }}</strong><br>
-            📋 Заголовков настроено
-        </div>
-        <div class="info-item">
-            <strong>{{ problems_count }}</strong><br>
-            ⚠️ Проблем обнаружено
-        </div>
-        <div class="info-item">
-            <strong>{{ scan_duration }}</strong><br>
-            ⏱️ Длительность сканирования
-        </div>
-    </div>
-
-    <!-- Секция CORS -->
-    <div class="section">
-        <div class="section-header">
-            <span>🌐</span>
-            <h3>CORS Политика</h3>
-        </div>
-        <div class="headers-accordion">
-            {% for header in headers.cors %}
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <div class="header-status">
-                        {% if header.status == 'present' %}
-                        <span class="status-present">✅ {{ header.name }}</span>
-                        {% elif header.status == 'missing' %}
-                        <span class="status-missing">❌ {{ header.name }}</span>
-                        {% else %}
-                        <span class="status-warning">⚠️ {{ header.name }}</span>
-                        {% endif %}
-                        <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
-                    </div>
-                    <span>⬇️</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="header-details">
-                        <p><strong>Описание:</strong> {{ header.description }}</p>
-                        {% if header.value %}
-                        <div class="header-value">
-                            {{ header.value }}
-                        </div>
-                        {% endif %}
-                        <div class="header-notes">
-                            {% for note in header.notes %}
-                            <div class="note note-{{ note.type }}">{{ note.text }}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+        <!-- Статус безопасности -->
+        <div class="security-status">
+            <div class="status-card" style="border-left-color: #ffc107;">
+                <div class="status-score">{{ security_score }}%</div>
+                <div class="status-badge" style="background: #ffc107; color: black;">🟠 Требует улучшений</div>
+                <div>На основе анализа {{ total_headers }} заголовков безопасности</div>
             </div>
-            {% endfor %}
         </div>
-    </div>
 
-    <!-- Секция Безопасности -->
-    <div class="section">
-        <div class="section-header">
-            <span>🛡️</span>
-            <h3>Безопасность и Защита</h3>
-        </div>
-        <div class="headers-accordion">
-            {% for header in headers.security %}
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <div class="header-status">
-                        {% if header.status == 'present' %}
-                        <span class="status-present">✅ {{ header.name }}</span>
-                        {% elif header.status == 'missing' %}
-                        <span class="status-missing">❌ {{ header.name }}</span>
-                        {% else %}
-                        <span class="status-warning">⚠️ {{ header.name }}</span>
-                        {% endif %}
-                        <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
-                    </div>
-                    <span>⬇️</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="header-details">
-                        <p><strong>Описание:</strong> {{ header.description }}</p>
-                        {% if header.value %}
-                        <div class="header-value">
-                            {{ header.value }}
-                        </div>
-                        {% endif %}
-                        <div class="header-notes">
-                            {% for note in header.notes %}
-                            <div class="note note-{{ note.type }}">{{ note.text }}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+        <!-- Информация о сканировании -->
+        <div class="scan-info">
+            <div class="info-item">
+                <strong>🎯 Цель сканирования</strong><br>
+                {{ target_url }}<br>
+                {% if final_url %}
+                <small>Финальный URL: {{ final_url }}</small>
+                {% endif %}
             </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Секция Приватности -->
-    <div class="section">
-        <div class="section-header">
-            <span>🔒</span>
-            <h3>Приватность и Конфиденциальность</h3>
-        </div>
-        <div class="headers-accordion">
-            {% for header in headers.privacy %}
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <div class="header-status">
-                        {% if header.status == 'present' %}
-                        <span class="status-present">✅ {{ header.name }}</span>
-                        {% elif header.status == 'missing' %}
-                        <span class="status-missing">❌ {{ header.name }}</span>
-                        {% else %}
-                        <span class="status-warning">⚠️ {{ header.name }}</span>
-                        {% endif %}
-                        <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
-                    </div>
-                    <span>⬇️</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="header-details">
-                        <p><strong>Описание:</strong> {{ header.description }}</p>
-                        {% if header.value %}
-                        <div class="header-value">
-                            {{ header.value }}
-                        </div>
-                        {% endif %}
-                        <div class="header-notes">
-                            {% for note in header.notes %}
-                            <div class="note note-{{ note.type }}">{{ note.text }}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+            <div class="info-item">
+                <strong>{{ configured_headers }}/{{ total_headers }}</strong><br>
+                📋 Заголовков настроено
             </div>
-            {% endfor %}
-        </div>
-    </div>
-
-    <!-- Секция Другие заголовки -->
-    <div class="section">
-        <div class="section-header">
-            <span>📋</span>
-            <h3>Другие заголовки</h3>
-        </div>
-        <div class="headers-accordion">
-            {% for header in headers.other %}
-            <div class="accordion-item">
-                <div class="accordion-header" onclick="toggleAccordion(this)">
-                    <div class="header-status">
-                        {% if header.status == 'present' %}
-                        <span class="status-present">✅ {{ header.name }}</span>
-                        {% elif header.status == 'missing' %}
-                        <span class="status-missing">❌ {{ header.name }}</span>
-                        {% else %}
-                        <span class="status-warning">⚠️ {{ header.name }}</span>
-                        {% endif %}
-                        <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
-                    </div>
-                    <span>⬇️</span>
-                </div>
-                <div class="accordion-content">
-                    <div class="header-details">
-                        <p><strong>Описание:</strong> {{ header.description }}</p>
-                        {% if header.value %}
-                        <div class="header-value">
-                            {{ header.value }}
-                        </div>
-                        {% endif %}
-                        <div class="header-notes">
-                            {% for note in header.notes %}
-                            <div class="note note-{{ note.type }}">{{ note.text }}</div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+            <div class="info-item">
+                <strong>{{ problems_count }}</strong><br>
+                ⚠️ Проблем обнаружено
             </div>
-            {% endfor %}
+            <div class="info-item">
+                <strong>{{ scan_duration }}</strong><br>
+                ⏱️ Длительность сканирования
+            </div>
+        </div>
+
+        <!-- Секция CORS -->
+        <div class="section">
+            <div class="section-header">
+                <span>🌐</span>
+                <h3>CORS Политика</h3>
+            </div>
+            <div class="headers-accordion">
+                {% for header in headers.cors %}
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="header-status">
+                            {% if header.status == 'present' %}
+                            <span class="status-present">✅ {{ header.name }}</span>
+                            {% elif header.status == 'missing' %}
+                            <span class="status-missing">❌ {{ header.name }}</span>
+                            {% else %}
+                            <span class="status-warning">⚠️ {{ header.name }}</span>
+                            {% endif %}
+                            <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                        </div>
+                        <span>⬇️</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="header-details">
+                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                            {% if header.value %}
+                            <div class="header-value">
+                                {{ header.value }}
+                            </div>
+                            {% endif %}
+                            <div class="header-notes">
+                                {% for note in header.notes %}
+                                <div class="note note-{{ note.type }}">{{ note.text }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Секция Безопасности -->
+        <div class="section">
+            <div class="section-header">
+                <span>🛡️</span>
+                <h3>Безопасность и Защита</h3>
+            </div>
+            <div class="headers-accordion">
+                {% for header in headers.security %}
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="header-status">
+                            {% if header.status == 'present' %}
+                            <span class="status-present">✅ {{ header.name }}</span>
+                            {% elif header.status == 'missing' %}
+                            <span class="status-missing">❌ {{ header.name }}</span>
+                            {% else %}
+                            <span class="status-warning">⚠️ {{ header.name }}</span>
+                            {% endif %}
+                            <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                        </div>
+                        <span>⬇️</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="header-details">
+                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                            {% if header.value %}
+                            <div class="header-value">
+                                {{ header.value }}
+                            </div>
+                            {% endif %}
+                            <div class="header-notes">
+                                {% for note in header.notes %}
+                                <div class="note note-{{ note.type }}">{{ note.text }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Секция Приватности -->
+        <div class="section">
+            <div class="section-header">
+                <span>🔒</span>
+                <h3>Приватность и Конфиденциальность</h3>
+            </div>
+            <div class="headers-accordion">
+                {% for header in headers.privacy %}
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="header-status">
+                            {% if header.status == 'present' %}
+                            <span class="status-present">✅ {{ header.name }}</span>
+                            {% elif header.status == 'missing' %}
+                            <span class="status-missing">❌ {{ header.name }}</span>
+                            {% else %}
+                            <span class="status-warning">⚠️ {{ header.name }}</span>
+                            {% endif %}
+                            <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                        </div>
+                        <span>⬇️</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="header-details">
+                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                            {% if header.value %}
+                            <div class="header-value">
+                                {{ header.value }}
+                            </div>
+                            {% endif %}
+                            <div class="header-notes">
+                                {% for note in header.notes %}
+                                <div class="note note-{{ note.type }}">{{ note.text }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Секция Другие заголовки -->
+        <div class="section">
+            <div class="section-header">
+                <span>📋</span>
+                <h3>Другие заголовки</h3>
+            </div>
+            <div class="headers-accordion">
+                {% for header in headers.other %}
+                <div class="accordion-item">
+                    <div class="accordion-header" onclick="toggleAccordion(this)">
+                        <div class="header-status">
+                            {% if header.status == 'present' %}
+                            <span class="status-present">✅ {{ header.name }}</span>
+                            {% elif header.status == 'missing' %}
+                            <span class="status-missing">❌ {{ header.name }}</span>
+                            {% else %}
+                            <span class="status-warning">⚠️ {{ header.name }}</span>
+                            {% endif %}
+                            <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                        </div>
+                        <span>⬇️</span>
+                    </div>
+                    <div class="accordion-content">
+                        <div class="header-details">
+                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                            {% if header.value %}
+                            <div class="header-value">
+                                {{ header.value }}
+                            </div>
+                            {% endif %}
+                            <div class="header-notes">
+                                {% for note in header.notes %}
+                                <div class="note note-{{ note.type }}">{{ note.text }}</div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Проблемы и рекомендации -->
+        {% if problems %}
+        <div class="problems-section">
+            <h3>🚨 Выявленные проблемы и рекомендации</h3>
+            <ul>
+                {% for problem in problems %}
+                <li>{{ problem }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        {% if final_recommendation %}
+        <div class="recommendations">
+            <h3>💡 Итоговая рекомендация:</h3>
+            <p><strong>{{ final_recommendation.title }}</strong></p>
+            <p>{{ final_recommendation.description }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Кнопка нового сканирования -->
+        <a href="{{ url_for('index') }}" class="new-scan-btn">
+            🔍 Начать новое сканирование
+        </a>
+
+        <!-- Статистика сканирования в столбик -->
+        <div class="scan-stats">
+            <strong>📊 Статистика сканирования:</strong>
+            <ul class="stats-list">
+                <li>• Цель: {{ target_url }}</li>
+                <li>• Оценка безопасности: {{ security_score }}%</li>
+                <li>• Заголовков проверено: {{ total_headers }}</li>
+                <li>• Проблем обнаружено: {{ problems_count }}</li>
+                <li>• Время сканирования: {{ scan_duration }}</li>
+            </ul>
         </div>
     </div>
 
-    <!-- Проблемы и рекомендации -->
-    {% if problems %}
-    <div class="problems-section">
-        <h3>🚨 Выявленные проблемы и рекомендации</h3>
-        <ul>
-            {% for problem in problems %}
-            <li>{{ problem }}</li>
-            {% endfor %}
-        </ul>
-    </div>
-    {% endif %}
+    <script>
+        function toggleAccordion(header) {
+            const item = header.parentElement;
+            const content = item.querySelector('.accordion-content');
+            const isActive = item.classList.contains('active');
 
-    {% if final_recommendation %}
-    <div class="recommendations">
-        <h3>💡 Итоговая рекомендация:</h3>
-        <p><strong>{{ final_recommendation.title }}</strong></p>
-        <p>{{ final_recommendation.description }}</p>
-    </div>
-    {% endif %}
+            // Закрываем все аккордеоны
+            document.querySelectorAll('.accordion-item').forEach(acc => {
+                acc.classList.remove('active');
+            });
 
-    <!-- Статистика сканирования -->
-    <div style="text-align: center; margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
-        <strong>📊 Статистика сканирования:</strong><br>
-        • Цель: {{ target_url }} • Оценка безопасности: {{ security_score }}% • Заголовков проверено: {{ total_headers
-        }} • Проблем обнаружено: {{ problems_count }} • Время сканирования: {{ scan_duration }}
-    </div>
-</div>
+            // Открываем текущий, если он был закрыт
+            if (!isActive) {
+                item.classList.add('active');
+            }
+        }
 
-<script>
-    function toggleAccordion(header) {
-        const item = header.parentElement;
-        const content = item.querySelector('.accordion-content');
-        const isActive = item.classList.contains('active');
-
-        // Закрываем все аккордеоны
-        document.querySelectorAll('.accordion-item').forEach(acc => {
-            acc.classList.remove('active');
+        // Автоматически открываем первый аккордеон с проблемами
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstProblem = document.querySelector('.accordion-item');
+            if (firstProblem) {
+                firstProblem.classList.add('active');
+            }
         });
-
-        // Открываем текущий, если он был закрыт
-        if (!isActive) {
-            item.classList.add('active');
-        }
-    }
-
-    // Автоматически открываем первый аккордеон с проблемами
-    document.addEventListener('DOMContentLoaded', function() {
-        const firstProblem = document.querySelector('.accordion-item');
-        if (firstProblem) {
-            firstProblem.classList.add('active');
-        }
-    });
-</script>
-
-<!-- Кнопка нового сканирования -->
-<a href="{{ url_for('index') }}" class="new-scan-btn">
-    🔍 Начать новое сканирование
-</a>
-
-
+    </script>
 </body>
 </html>
