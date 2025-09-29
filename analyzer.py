@@ -16,72 +16,83 @@ def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Di
             - Оценка безопасности (0-100)
     """
 
-    # Определяем проверяемые заголовки
+    # Определяем проверяемые заголовки с правильной категоризацией
     security_headers = [
         {
             'name': 'Content-Security-Policy',
             'description': 'Защита от XSS и внедрения кода',
             'critical': True,
+            'category': 'security',
             'analyzer': _analyze_csp
         },
         {
             'name': 'Strict-Transport-Security',
             'description': 'Принудительное использование HTTPS',
             'critical': True,
+            'category': 'security',
             'analyzer': _analyze_hsts
         },
         {
             'name': 'X-Frame-Options',
             'description': 'Защита от clickjacking',
             'critical': True,
+            'category': 'security',
             'analyzer': _analyze_x_frame_options
         },
         {
             'name': 'X-Content-Type-Options',
             'description': 'Блокировка MIME-sniffing',
             'critical': False,
+            'category': 'privacy',
             'analyzer': _analyze_content_type_options
         },
         {
             'name': 'Referrer-Policy',
             'description': 'Контроль утечки referrer данных',
             'critical': False,
+            'category': 'privacy',
             'analyzer': _analyze_referrer_policy
         },
         {
             'name': 'Permissions-Policy',
             'description': 'Управление доступом к API браузера',
             'critical': False,
+            'category': 'privacy',
             'analyzer': _analyze_permissions_policy
         },
         {
             'name': 'Access-Control-Allow-Origin',
             'description': 'CORS политика - разрешенные домены',
-            'critical': True,
+            'critical': False,
+            'category': 'cors',
             'analyzer': _analyze_cors_origin
         },
         {
             'name': 'Access-Control-Allow-Methods',
             'description': 'CORS разрешенные методы',
             'critical': False,
+            'category': 'cors',
             'analyzer': _analyze_cors_methods
         },
         {
             'name': 'Access-Control-Allow-Headers',
             'description': 'CORS разрешенные заголовки',
             'critical': False,
+            'category': 'cors',
             'analyzer': _analyze_cors_headers
         },
         {
             'name': 'Access-Control-Allow-Credentials',
             'description': 'CORS передача учетных данных',
-            'critical': True,
+            'critical': False,
+            'category': 'cors',
             'analyzer': _analyze_cors_credentials
         },
         {
             'name': 'X-XSS-Protection',
             'description': 'Защита от XSS (устаревшая)',
             'critical': False,
+            'category': 'privacy',
             'analyzer': _analyze_xss_protection
         }
     ]
@@ -104,6 +115,7 @@ def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Di
             'risk': analysis['risk'],
             'description': header_def['description'],
             'critical': header_def['critical'],
+            'category': header_def['category'],
             'warnings': analysis['warnings'],
             'recommendations': analysis['recommendations']
         })
@@ -115,8 +127,21 @@ def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Di
     cors_issues = _analyze_cors_comprehensive(headers)
     all_issues.extend(cors_issues)
 
-    # Рассчитываем общую оценку безопасности
+    # Добавляем общие проблемы на основе отсутствующих критических заголовков
+    missing_critical = [h for h in analyzed_headers if h['critical'] and not h['present']]
+    if missing_critical:
+        critical_names = [h['name'] for h in missing_critical]
+        if len(missing_critical) >= 2:
+            all_issues.append(f"🚨 КРИТИЧЕСКО: Отсутствуют важные заголовки безопасности: {', '.join(critical_names)}")
+        else:
+            for header in missing_critical:
+                all_issues.append(f"❌ КРИТИЧЕСКИЙ: Отсутствует {header['name']} - {header['description']}")
+
+    # Добавляем предупреждение если оценка низкая
     security_score = _calculate_security_score(analyzed_headers)
+    if security_score < 60:
+        present_count = sum(1 for h in analyzed_headers if h['present'])
+        all_issues.append(f"⚠️ НИЗКАЯ ОЦЕНКА: Настроено только {present_count}/{len(analyzed_headers)} заголовков")
 
     return analyzed_headers, all_issues, security_score
 
@@ -153,7 +178,7 @@ def _analyze_csp(value: Optional[str], all_headers: Dict) -> Dict:
     if "style-src" not in value:
         warnings.append("ℹ️ CSP не определяет style-src политику")
 
-    recommendations.append("✅ CSP настроен")
+    recommendations.append("✅ CSP настроен правильно")
 
     return {'risk': risk, 'issues': issues, 'warnings': warnings, 'recommendations': recommendations}
 
@@ -198,6 +223,8 @@ def _analyze_hsts(value: Optional[str], all_headers: Dict) -> Dict:
 
     if preload:
         recommendations.append("✅ HSTS настроен для preload списка")
+
+    recommendations.append("✅ HSTS правильно настроен")
 
     return {'risk': risk, 'issues': issues, 'warnings': warnings, 'recommendations': recommendations}
 
@@ -333,6 +360,9 @@ def _analyze_cors_methods(value: Optional[str], all_headers: Dict) -> Dict:
                 warnings.append(f"⚠️ Опасный метод {method} доступен для всех доменов")
                 risk = "Средний"
 
+    if value:
+        recommendations.append(f"✅ CORS методы настроены: {value}")
+
     return {'risk': risk, 'issues': issues, 'warnings': warnings, 'recommendations': recommendations}
 
 
@@ -355,6 +385,9 @@ def _analyze_cors_headers(value: Optional[str], all_headers: Dict) -> Dict:
                 warnings.append(f"⚠️ Чувствительный заголовок {header} разрешен для всех доменов")
                 risk = "Средний"
 
+    if value:
+        recommendations.append(f"✅ CORS заголовки настроены: {value}")
+
     return {'risk': risk, 'issues': issues, 'warnings': warnings, 'recommendations': recommendations}
 
 
@@ -376,6 +409,8 @@ def _analyze_cors_credentials(value: Optional[str], all_headers: Dict) -> Dict:
     elif value.lower() == "true":
         warnings.append("⚠️ CORS разрешена передача учетных данных")
         risk = "Средний"
+    else:
+        recommendations.append("✅ CORS credentials правильно настроен")
 
     return {'risk': risk, 'issues': issues, 'warnings': warnings, 'recommendations': recommendations}
 
@@ -438,9 +473,13 @@ def _calculate_security_score(analyzed_headers: List[Dict]) -> int:
 
         # Очки за заголовок: присутствует = 1, отсутствует = 0
         # Штраф за предупреждения: -0.5 за каждое
+        # Штраф за проблемы: -1 за каждую
         score = 1 if header['present'] else 0
-        if header['present'] and header['warnings']:
-            score -= min(0.5 * len(header['warnings']), 0.5)  # Макс штраф -0.5
+
+        if header['present']:
+            # Штрафы только за присутствующие заголовки
+            score -= min(0.5 * len(header['warnings']), 0.5)  # Макс штраф -0.5 за предупреждения
+            score -= min(1.0 * len(header['issues']), 1.0)  # Макс штраф -1.0 за проблемы
 
         score = max(0, score)  # Не меньше 0
 
@@ -474,13 +513,32 @@ def get_security_headers_analysis(headers: Dict[str, Optional[str]]) -> Dict[str
     """
     analyzed_headers, issues, score = analyze_security_headers(headers)
 
+    # Подсчитываем заголовки по категориям
+    security_headers = [h for h in analyzed_headers if h['category'] == 'security']
+    cors_headers = [h for h in analyzed_headers if h['category'] == 'cors']
+    privacy_headers = [h for h in analyzed_headers if h['category'] == 'privacy']
+
     return {
         'headers': analyzed_headers,
         'issues': issues,
         'security_score': score,
         'total_headers': len(analyzed_headers),
         'present_headers': sum(1 for h in analyzed_headers if h['present']),
-        'critical_headers_present': sum(1 for h in analyzed_headers if h['critical'] and h['present'])
+        'critical_headers_present': sum(1 for h in analyzed_headers if h['critical'] and h['present']),
+        'categories': {
+            'security': {
+                'total': len(security_headers),
+                'present': sum(1 for h in security_headers if h['present'])
+            },
+            'cors': {
+                'total': len(cors_headers),
+                'present': sum(1 for h in cors_headers if h['present'])
+            },
+            'privacy': {
+                'total': len(privacy_headers),
+                'present': sum(1 for h in privacy_headers if h['present'])
+            }
+        }
     }
 
 
@@ -508,6 +566,6 @@ if __name__ == "__main__":
     print("\nДетальный анализ заголовков:")
     for header in full_analysis['headers']:
         status = "✅" if header['present'] else "❌"
-        print(f"  {status} {header['name']}: {header['risk']}")
+        print(f"  {status} {header['name']}: {header['risk']} ({header['category']})")
         for warning in header['warnings']:
             print(f"    {warning}")
