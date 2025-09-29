@@ -91,7 +91,4 @@ def test_scan():
 if __name__ == "__main__":
     # Получаем порт из переменных окружения (для Render) или используем 5000 по умолчанию
     port = int(os.environ.get("PORT", 5000))
-
-    # Запускаем приложение на всех интерфейсах с указанным портом
-    # debug=False для production окружения
     app.run(host="0.0.0.0", port=port, debug=False)

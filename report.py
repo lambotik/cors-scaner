@@ -17,6 +17,7 @@ def print_report(scan_results: Dict[str, Any]) -> None:
     print(f"\n{Back.BLUE}{Fore.WHITE}🔐 ОТЧЕТ БЕЗОПАСНОСТИ HTTP-ЗАГОЛОВКОВ {Style.RESET_ALL}")
     print("=" * 70)
 
+
     # Основная информация
     print(f"\n{Fore.CYAN}🎯 ЦЕЛЬ СКАНИРОВАНИЯ:{Style.RESET_ALL}")
     print(f"   URL: {scan_results['target']}")
