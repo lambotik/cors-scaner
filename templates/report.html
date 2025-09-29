@@ -19,6 +19,7 @@
         .header-value { font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 2px 4px; border-radius: 3px; }
         .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; }
         .back-link { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
+        .csp-analysis { background: #e7f3ff; padding: 15px; border-radius: 5px; margin: 20px 0; }
     </style>
 </head>
 <body>
@@ -69,6 +70,21 @@
         </tr>
         {% endfor %}
     </table>
+
+    <!-- ДОБАВЬТЕ ЭТОТ БЛОК ЗДЕСЬ -->
+    {% for header in headers %}
+        {% if header.name == "Content-Security-Policy" and header.present and header.warnings %}
+        <div class="csp-analysis">
+            <h2>🔍 Анализ Content-Security-Policy</h2>
+            <p><strong>Найдено директив:</strong> {{ header.value.count(';') + 1 }}</p>
+            <ul>
+                {% for warning in header.warnings %}
+                <li class="warning">{{ warning }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    {% endfor %}
 
     <h2>⚠️ Выявленные проблемы</h2>
     {% if issues %}

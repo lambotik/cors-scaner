@@ -1,6 +1,7 @@
 import requests
 from datetime import datetime
 from urllib.parse import urlparse
+import re
 
 SECURITY_HEADERS = {
     "Content-Security-Policy": "Уязвимость к XSS",
@@ -12,6 +13,28 @@ SECURITY_HEADERS = {
     "Permissions-Policy": "Доступ к функциям браузера",
     "X-XSS-Protection": "Защита от XSS (устарело, но проверяем)",
 }
+
+
+def analyze_csp(csp_header):
+    """Анализ качества CSP заголовка"""
+    warnings = []
+
+    if not csp_header:
+        return ["❌ CSP отсутствует"]
+
+    # Проверяем unsafe-inline в script-src
+    if "'unsafe-inline'" in csp_header and "script-src" in csp_header:
+        warnings.append("⚠️ CSP: unsafe-inline в script-src снижает безопасность")
+
+    # Проверяем unsafe-eval в script-src
+    if "'unsafe-eval'" in csp_header and "script-src" in csp_header:
+        warnings.append("⚠️ CSP: unsafe-eval в script-src снижает безопасность")
+
+    # Проверяем отсутствие default-src
+    if "default-src" not in csp_header:
+        warnings.append("⚠️ CSP: отсутствует default-src")
+
+    return warnings
 
 
 def validate_url(url):
@@ -44,7 +67,8 @@ def scan_headers(url):
         "issues": [],
         "security_score": 0,
         "total_headers": len(SECURITY_HEADERS),
-        "error": False
+        "error": False,
+        "csp_warnings": []
     }
 
     try:
@@ -63,11 +87,18 @@ def scan_headers(url):
             header_value = response_headers.get(header)
             present = header_value is not None
 
+            # Специальный анализ для CSP
+            csp_warnings = []
+            if header == "Content-Security-Policy" and present:
+                csp_warnings = analyze_csp(header_value)
+                result["csp_warnings"] = csp_warnings
+
             result["headers"].append({
                 "name": header,
                 "present": present,
                 "value": header_value if present else None,
-                "risk": risk
+                "risk": risk,
+                "warnings": csp_warnings if header == "Content-Security-Policy" else []
             })
 
             if present:
@@ -77,6 +108,8 @@ def scan_headers(url):
                     result["issues"].append(f"⚠️ {header} = * — открыт для всех доменов")
                 elif header == "X-XSS-Protection" and header_value == "0":
                     result["issues"].append(f"⚠️ {header} = 0 — защита от XSS отключена")
+                elif header == "Content-Security-Policy" and csp_warnings:
+                    result["issues"].extend(csp_warnings)
             else:
                 result["issues"].append(f"❌ {header} отсутствует — {risk}")
 
