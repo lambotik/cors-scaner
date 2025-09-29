@@ -259,6 +259,23 @@ class SecurityScanner:
         """
         scan_duration = round(time.time() - start_time, 2)
 
+        # Подготовка данных для шаблонов
+        critical_missing = []
+        cors_missing = []
+        privacy_missing = []
+        present_headers_names = []
+
+        for header in analysis['headers']:
+            if header['present']:
+                present_headers_names.append(header['name'])
+            else:
+                if header['critical'] and 'CORS' not in header['name'] and 'Access-Control' not in header['name']:
+                    critical_missing.append(header['name'])
+                elif 'CORS' in header['name'] or 'Access-Control' in header['name']:
+                    cors_missing.append(header['name'])
+                else:
+                    privacy_missing.append(header['name'])
+
         final_result = {
             'target': scanned_url,
             'date': time.strftime('%Y-%m-%d %H:%M:%S'),
@@ -278,6 +295,12 @@ class SecurityScanner:
                 'content_type': response.headers.get('Content-Type')
             },
             'raw_headers': dict(response.headers),
+            'template_data': {
+                'critical_missing': critical_missing,
+                'cors_missing': cors_missing,
+                'privacy_missing': privacy_missing,
+                'present_headers_names': present_headers_names
+            },
             'error': None
         }
 
