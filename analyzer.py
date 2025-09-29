@@ -84,7 +84,7 @@ def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Di
         {
             'name': 'Access-Control-Allow-Credentials',
             'description': 'CORS передача учетных данных',
-            'critical': False,
+            'critical': True,  # Изменено на критический
             'category': 'cors',
             'analyzer': _analyze_cors_credentials
         },
@@ -328,7 +328,14 @@ def _analyze_cors_origin(value: Optional[str], all_headers: Dict) -> Dict:
     risk = "Низкий"
 
     if not value:
-        # Отсутствие CORS - не всегда проблема, зависит от контекста
+        # Проверяем, есть ли другие CORS заголовки
+        cors_headers_present = any(
+            h for h in ['Access-Control-Allow-Methods', 'Access-Control-Allow-Headers',
+                        'Access-Control-Allow-Credentials']
+            if h in all_headers
+        )
+        if cors_headers_present:
+            warnings.append("⚠️ Настроены CORS заголовки, но отсутствует Access-Control-Allow-Origin")
         return {'risk': risk, 'issues': issues, 'warnings': warnings, 'recommendations': recommendations}
 
     if value == "*":
@@ -465,26 +472,25 @@ def _calculate_security_score(analyzed_headers: List[Dict]) -> int:
         return 0
 
     total_weight = 0
-    weighted_score = 0
+    weighted_score = 0.0  # Используем float для точных расчетов
 
     for header in analyzed_headers:
         # Вес заголовка: критические = 3, обычные = 1
         weight = 3 if header['critical'] else 1
 
         # Очки за заголовок: присутствует = 1, отсутствует = 0
-        # Штраф за предупреждения: -0.5 за каждое
-        # Штраф за проблемы: -1 за каждую
-        score = 1 if header['present'] else 0
+        header_score = 1.0 if header['present'] else 0.0
 
         if header['present']:
-            # Штрафы только за присутствующие заголовки
-            score -= min(0.5 * len(header['warnings']), 0.5)  # Макс штраф -0.5 за предупреждения
-            score -= min(1.0 * len(header['issues']), 1.0)  # Макс штраф -1.0 за проблемы
+            # Штраф за предупреждения: -0.5 за каждое (макс -0.5)
+            warning_penalty = min(0.5 * len(header['warnings']), 0.5)
+            # Штраф за проблемы: -1 за каждую (макс -1.0)
+            issue_penalty = min(1.0 * len([i for i in header['issues'] if not i.startswith('✅')]), 1.0)
 
-        score = max(0, score)  # Не меньше 0
+            header_score = max(0.0, header_score - warning_penalty - issue_penalty)
 
         total_weight += weight
-        weighted_score += score * weight
+        weighted_score += header_score * weight
 
     if total_weight == 0:
         return 0
@@ -513,6 +519,23 @@ def get_security_headers_analysis(headers: Dict[str, Optional[str]]) -> Dict[str
     """
     analyzed_headers, issues, score = analyze_security_headers(headers)
 
+    # Подготовка данных для шаблонов
+    critical_missing = []
+    cors_missing = []
+    privacy_missing = []
+    present_headers_names = []
+
+    for header in analyzed_headers:
+        if header['present']:
+            present_headers_names.append(header['name'])
+        else:
+            if header['critical'] and 'CORS' not in header['name'] and 'Access-Control' not in header['name']:
+                critical_missing.append(header['name'])
+            elif 'CORS' in header['name'] or 'Access-Control' in header['name']:
+                cors_missing.append(header['name'])
+            else:
+                privacy_missing.append(header['name'])
+
     # Подсчитываем заголовки по категориям
     security_headers = [h for h in analyzed_headers if h['category'] == 'security']
     cors_headers = [h for h in analyzed_headers if h['category'] == 'cors']
@@ -525,6 +548,12 @@ def get_security_headers_analysis(headers: Dict[str, Optional[str]]) -> Dict[str
         'total_headers': len(analyzed_headers),
         'present_headers': sum(1 for h in analyzed_headers if h['present']),
         'critical_headers_present': sum(1 for h in analyzed_headers if h['critical'] and h['present']),
+        'template_data': {
+            'critical_missing': critical_missing,
+            'cors_missing': cors_missing,
+            'privacy_missing': privacy_missing,
+            'present_headers_names': present_headers_names
+        },
         'categories': {
             'security': {
                 'total': len(security_headers),
