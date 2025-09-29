@@ -165,11 +165,16 @@ def main() -> Optional[int]:
         # Выполняем сканирование
         results = scan_headers(args.url, timeout=args.timeout)
 
+        # ПРОВЕРЯЕМ НАЛИЧИЕ ОШИБКИ ПРАВИЛЬНО
         if results.get("error"):
             print("❌ Ошибка при сканировании:")
-            for issue in results.get("issues", []):
-                print(f"   {issue}")
+            error_msg = results.get("error", "Неизвестная ошибка")
+            print(f"   {error_msg}")
             return 1
+
+        # Проверяем наличие обязательных полей
+        if 'issues' not in results:
+            results['issues'] = ["⚠️ Не удалось проанализировать заголовки"]
 
         # Генерация отчетов в выбранном формате
         if args.format in ["html", "both"]:
