@@ -4,29 +4,66 @@
     <meta charset="UTF-8">
     <title>Отчёт CORS-сканера</title>
     <style>
-        body { font-family: Arial; background: #f4f4f4; padding: 20px; }
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; max-width: 1200px; margin: 0 auto; }
         h1, h2 { color: #333; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #ccc; padding: 8px; }
-        th { background: #eee; }
-        .missing { color: red; font-weight: bold; }
-        .ok { color: green; font-weight: bold; }
-        .warning { color: orange; }
+        .score { font-size: 24px; font-weight: bold; padding: 10px; border-radius: 5px; text-align: center; }
+        .score-high { background: #d4edda; color: #155724; }
+        .score-medium { background: #fff3cd; color: #856404; }
+        .score-low { background: #f8d7da; color: #721c24; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: white; }
+        th, td { border: 1px solid #ccc; padding: 12px; text-align: left; }
+        th { background: #e9ecef; }
+        .missing { color: #dc3545; font-weight: bold; }
+        .ok { color: #28a745; font-weight: bold; }
+        .warning { color: #ffc107; font-weight: bold; }
+        .header-value { font-family: monospace; font-size: 12px; background: #f8f9fa; padding: 2px 4px; border-radius: 3px; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; }
+        .back-link { display: inline-block; margin-top: 20px; padding: 10px 15px; background: #007bff; color: white; text-decoration: none; border-radius: 5px; }
     </style>
 </head>
 <body>
-    <h1>🔐 Отчёт CORS-сканера</h1>
-    <p><strong>Цель:</strong> {{ target }}</p>
-    <p><strong>Дата:</strong> {{ date }}</p>
+    <h1>🔐 Отчёт безопасности заголовков</h1>
 
-    <h2>Заголовки безопасности</h2>
+    {% if error %}
+    <div class="error">
+        <h2>❌ Ошибка сканирования</h2>
+        <p><strong>Цель:</strong> {{ target }}</p>
+        <p><strong>Дата:</strong> {{ date }}</p>
+        <ul>
+            {% for issue in issues %}
+            <li>{{ issue }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% else %}
+    <div class="score score-{{ 'high' if security_score >= 80 else 'medium' if security_score >= 60 else 'low' }}">
+        Оценка безопасности: {{ security_score }}%
+    </div>
+
+    <p><strong>🔗 Цель:</strong> {{ target }}</p>
+    <p><strong>📅 Дата:</strong> {{ date }}</p>
+    <p><strong>📊 Заголовков проверено:</strong> {{ total_headers }}</p>
+
+    <h2>🛡️ Заголовки безопасности</h2>
     <table>
-        <tr><th>Заголовок</th><th>Статус</th><th>Риск</th></tr>
+        <tr>
+            <th>Заголовок</th>
+            <th>Статус</th>
+            <th>Значение</th>
+            <th>Риск</th>
+        </tr>
         {% for header in headers %}
         <tr>
-            <td>{{ header.name }}</td>
+            <td><strong>{{ header.name }}</strong></td>
             <td class="{{ 'ok' if header.present else 'missing' }}">
                 {% if header.present %}✅ Присутствует{% else %}❌ Отсутствует{% endif %}
+            </td>
+            <td>
+                {% if header.present %}
+                <code class="header-value">{{ header.value|truncate(50) }}</code>
+                {% else %}
+                —
+                {% endif %}
             </td>
             <td>{{ header.risk }}</td>
         </tr>
@@ -34,13 +71,17 @@
     </table>
 
     <h2>⚠️ Выявленные проблемы</h2>
+    {% if issues %}
     <ul>
         {% for issue in issues %}
-        <li class="warning">{{ issue }}</li>
+        <li class="{{ 'warning' if '⚠️' in issue else '' }}">{{ issue }}</li>
         {% endfor %}
     </ul>
+    {% else %}
+    <p>✅ Проблем не обнаружено! Отличная безопасность!</p>
+    {% endif %}
+    {% endif %}
 
-    <br>
-    <a href="/">← Назад к сканеру</a>
+    <a href="/" class="back-link">← Новое сканирование</a>
 </body>
 </html>
