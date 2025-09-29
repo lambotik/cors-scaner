@@ -371,7 +371,7 @@
                     <th>Статус</th>
                     <th>Значение</th>
                     <th>Уровень риска</th>
-                    <th>Категория</th>
+                    <th>Важность</th>
                 </tr>
             </thead>
             <tbody>
@@ -380,7 +380,6 @@
                 <tr>
                     <td style="font-weight: 600;">
                         {{ header.name }}
-                        <span class="critical-badge">КРИТ</span>
                     </td>
                     <td>
                         {% if header.present %}
@@ -408,7 +407,7 @@
                         </span>
                     </td>
                     <td>
-                        <span class="category-badge category-security">Безопасность</span>
+                        <span style="color: var(--danger); font-weight: 600;">🔴 Критический</span>
                     </td>
                 </tr>
                 {% endif %}
@@ -434,7 +433,7 @@
                     <th>Статус</th>
                     <th>Значение</th>
                     <th>Уровень риска</th>
-                    <th>Категория</th>
+                    <th>Важность</th>
                 </tr>
             </thead>
             <tbody>
@@ -468,7 +467,11 @@
                         </span>
                     </td>
                     <td>
-                        <span class="category-badge category-cors">CORS</span>
+                        {% if header.critical %}
+                        <span style="color: var(--danger); font-weight: 600;">🔴 Критический</span>
+                        {% else %}
+                        <span style="color: var(--warning); font-weight: 600;">🟡 Важный</span>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endif %}
@@ -494,7 +497,7 @@
                     <th>Статус</th>
                     <th>Значение</th>
                     <th>Уровень риска</th>
-                    <th>Категория</th>
+                    <th>Важность</th>
                 </tr>
             </thead>
             <tbody>
@@ -528,7 +531,7 @@
                         </span>
                     </td>
                     <td>
-                        <span class="category-badge category-privacy">Приватность</span>
+                        <span style="color: var(--primary); font-weight: 600;">🔵 Рекомендуемый</span>
                     </td>
                 </tr>
                 {% endif %}
