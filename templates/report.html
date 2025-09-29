@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Отчёт безопасности заголовков</title>
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
     <style>
         :root {
             --primary: #2563eb;
@@ -19,12 +19,14 @@
         }
 
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
             color: #1f2937;
             line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         .header {
@@ -51,7 +53,7 @@
 
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 20px;
             margin: 30px 0;
             background: #f8fafc;
@@ -68,12 +70,37 @@
             font-size: 0.9rem;
             color: var(--gray-600);
             font-weight: 500;
-            margin-bottom: 4px;
+            margin-bottom: 8px;
         }
 
         .info-value {
             font-size: 1rem;
             font-weight: 600;
+        }
+
+        .url-container {
+            background: #f8fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid var(--primary);
+        }
+
+        .url-label {
+            font-size: 0.9rem;
+            color: var(--gray-600);
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .url-value {
+            font-family: 'Courier New', monospace;
+            word-break: break-all;
+            font-size: 0.9rem;
+            background: #f1f5f9;
+            padding: 10px 12px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
         }
 
         .rate-limit-info {
@@ -285,6 +312,10 @@
             .headers-table td {
                 padding: 12px 8px;
             }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -323,14 +354,16 @@
         <p>На основе анализа {{ total_headers }} заголовков безопасности</p>
     </div>
 
+    <!-- URL Container -->
+    <div class="url-container">
+        <div class="url-label">🎯 Цель сканирования</div>
+        <div class="url-value">{{ target }}</div>
+    </div>
+
     <!-- Scan Information -->
     <div class="info-grid">
         <div class="info-item">
-            <span class="info-label">🎯 Цель сканирования</span>
-            <span class="info-value">{{ target }}</span>
-        </div>
-        <div class="info-item">
-            <span class="info-label">📅 Дата и время</span>
+            <span class="info-label">📅 Дата сканирования</span>
             <span class="info-value">{{ date }}</span>
         </div>
         <div class="info-item">
@@ -340,6 +373,10 @@
         <div class="info-item">
             <span class="info-label">🔍 Проверено заголовков</span>
             <span class="info-value">{{ present_headers }}/{{ total_headers }}</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">⚡ HTTP статус</span>
+            <span class="info-value">{{ http_status }}</span>
         </div>
     </div>
 

@@ -13,7 +13,7 @@ CORS(app)
 limiter = Limiter(
     get_remote_address,
     app=app,
-    default_limits=["200 per day", "50 per hour"]
+    default_limits=["200 per day", "60 per hour"]
 )
 
 
@@ -25,7 +25,7 @@ def favicon():
 
 
 @app.route("/", methods=["GET", "POST"])
-@limiter.limit("2 per minute")
+@limiter.limit("1 per minute")
 def index():
     """
     Главная страница приложения.
@@ -45,7 +45,7 @@ def index():
 
 
 @app.route("/api/scan", methods=["POST"])
-@limiter.limit("5 per minute")
+@limiter.limit("1 per minute")
 def api_scan():
     """
     REST API endpoint для программного сканирования заголовков.
@@ -68,7 +68,7 @@ def api_scan():
 
 
 @app.route("/test-scan")
-@limiter.limit("2 per minute")
+@limiter.limit("1 per minute")
 def test_scan():
     """
     Тестовый маршрут для проверки работы сканера.
@@ -86,9 +86,9 @@ def ratelimit_handler(e):
         "error": "Слишком много запросов",
         "message": "Пожалуйста, подождите перед следующим сканированием",
         "limits": {
-            "form": "2 запросов в минуту",
-            "api": "5 запросов в минуту",
-            "test": "2 запроса в минуту"
+            "form": "1 запросов в минуту",
+            "api": "1 запросов в минуту",
+            "test": "1 запроса в минуту"
         }
     }), 429
 
