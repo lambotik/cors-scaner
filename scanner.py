@@ -1,140 +1,55 @@
 import requests
 from datetime import datetime
-from urllib.parse import urlparse
-import re
-
-SECURITY_HEADERS = {
-    "Content-Security-Policy": "Уязвимость к XSS",
-    "Access-Control-Allow-Origin": "CORS-запросы будут заблокированы",
-    "Strict-Transport-Security": "Downgrade-атаки через HTTP",
-    "X-Frame-Options": "Clickjacking",
-    "X-Content-Type-Options": "MIME-sniffing",
-    "Referrer-Policy": "Утечка реферера",
-    "Permissions-Policy": "Доступ к функциям браузера",
-    "X-XSS-Protection": "Защита от XSS (устарело, но проверяем)",
-}
-
-
-def analyze_csp(csp_header):
-    """Анализ качества CSP заголовка"""
-    warnings = []
-
-    if not csp_header:
-        return ["❌ CSP отсутствует"]
-
-    # Проверяем unsafe-inline в script-src
-    if "'unsafe-inline'" in csp_header and "script-src" in csp_header:
-        warnings.append("⚠️ CSP: unsafe-inline в script-src снижает безопасность")
-
-    # Проверяем unsafe-eval в script-src
-    if "'unsafe-eval'" in csp_header and "script-src" in csp_header:
-        warnings.append("⚠️ CSP: unsafe-eval в script-src снижает безопасность")
-
-    # Проверяем отсутствие default-src
-    if "default-src" not in csp_header:
-        warnings.append("⚠️ CSP: отсутствует default-src")
-
-    return warnings
-
-
-def validate_url(url):
-    """Проверка и нормализация URL"""
-    if not url.startswith(('http://', 'https://')):
-        url = 'https://' + url
-
-    parsed = urlparse(url)
-    if not parsed.netloc:  # Если нет домена
-        return None
-    return url
 
 
 def scan_headers(url):
-    # Нормализуем URL
-    normalized_url = validate_url(url)
-    if not normalized_url:
-        return {
-            "target": url,
-            "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
-            "headers": [],
-            "issues": ["❌ Неверный URL формат"],
-            "error": True
-        }
+    print(f"🎯 Начинаем сканирование: {url}")
 
     result = {
-        "target": normalized_url,
+        "target": url,
         "date": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "headers": [],
         "issues": [],
         "security_score": 0,
-        "total_headers": len(SECURITY_HEADERS),
-        "error": False,
-        "csp_warnings": []
+        "total_headers": 7,
+        "error": False
     }
 
     try:
-        # Добавляем User-Agent чтобы избежать блокировки
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (CORS Security Scanner)',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-        }
+        print("🔗 Выполняем HTTP запрос...")
+        response = requests.get(url, timeout=10)
+        print(f"✅ Ответ получен, статус: {response.status_code}")
 
-        response = requests.get(normalized_url, timeout=15, headers=headers, allow_redirects=True)
-        response_headers = response.headers
+        # Проверяем основные заголовки
+        headers_to_check = [
+            "Content-Security-Policy",
+            "Strict-Transport-Security",
+            "X-Frame-Options",
+            "X-Content-Type-Options",
+            "Referrer-Policy",
+            "Permissions-Policy"
+        ]
 
-        found_headers = 0
-
-        for header, risk in SECURITY_HEADERS.items():
-            header_value = response_headers.get(header)
-            present = header_value is not None
-
-            # Специальный анализ для CSP
-            csp_warnings = []
-            if header == "Content-Security-Policy" and present:
-                csp_warnings = analyze_csp(header_value)
-                result["csp_warnings"] = csp_warnings
-
+        for header in headers_to_check:
+            present = header in response.headers
             result["headers"].append({
                 "name": header,
                 "present": present,
-                "value": header_value if present else None,
-                "risk": risk,
-                "warnings": csp_warnings if header == "Content-Security-Policy" else []
+                "value": response.headers.get(header),
+                "risk": "Риск безопасности"
             })
+            if not present:
+                result["issues"].append(f"{header} отсутствует")
 
-            if present:
-                found_headers += 1
-                # Проверяем опасные значения
-                if header == "Access-Control-Allow-Origin" and header_value == "*":
-                    result["issues"].append(f"⚠️ {header} = * — открыт для всех доменов")
-                elif header == "X-XSS-Protection" and header_value == "0":
-                    result["issues"].append(f"⚠️ {header} = 0 — защита от XSS отключена")
-                elif header == "Content-Security-Policy" and csp_warnings:
-                    result["issues"].extend(csp_warnings)
-            else:
-                result["issues"].append(f"❌ {header} отсутствует — {risk}")
+        # Считаем score
+        found = sum(1 for h in result["headers"] if h["present"])
+        result["security_score"] = int((found / len(headers_to_check)) * 100)
 
-        # Рассчитываем security score
-        result["security_score"] = int((found_headers / len(SECURITY_HEADERS)) * 100)
+        print(f"📊 Сканирование завершено. Score: {result['security_score']}%")
 
-        # Добавляем общую оценку
-        if result["security_score"] >= 80:
-            result["issues"].insert(0, "✅ Отличная безопасность заголовков!")
-        elif result["security_score"] >= 60:
-            result["issues"].insert(0, "⚠️ Средний уровень безопасности")
-        else:
-            result["issues"].insert(0, "🚨 Низкий уровень безопасности")
-
-    except requests.exceptions.Timeout:
-        result["issues"].append("⏰ Таймаут запроса (более 15 секунд)")
-        result["error"] = True
-    except requests.exceptions.ConnectionError:
-        result["issues"].append("🔌 Ошибка подключения к сайту")
-        result["error"] = True
-    except requests.exceptions.RequestException as e:
-        result["issues"].append(f"🌐 Ошибка сети: {str(e)}")
-        result["error"] = True
     except Exception as e:
-        result["issues"].append(f"⚙️ Неожиданная ошибка: {str(e)}")
+        print(f"❌ Ошибка при сканировании: {e}")
         result["error"] = True
+        result["issues"].append(f"Ошибка: {str(e)}")
 
     return result
