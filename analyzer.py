@@ -83,6 +83,13 @@ def analyze_security_headers(headers: Dict[str, Optional[str]]) -> Tuple[List[Di
             'description': 'Защита от XSS (устаревшая)',
             'critical': False,
             'analyzer': _analyze_xss_protection
+        },
+        {
+            'name': 'Content-Security-Policy',
+            'description_ru': 'Защита от XSS и внедрения кода',
+            'description_en': 'Protection against XSS and code injection',
+            'critical': True,
+            'analyzer': _analyze_csp
         }
     ]
 
