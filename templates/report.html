@@ -2,549 +2,389 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Отчёт безопасности заголовков</title>
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔐</text></svg>">
+    <title>CORS-сканер безопасности</title>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <style>
-        :root {
-            --primary: #2563eb;
-            --success: #059669;
-            --warning: #d97706;
-            --danger: #dc2626;
-            --gray-200: #e5e7eb;
-            --gray-600: #4b5563;
-            --gray-800: #1f2937;
-            --cors-color: #7c3aed;
-            --security-color: #dc2626;
-            --privacy-color: #0891b2;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
             padding: 20px;
-            color: #1f2937;
-            line-height: 1.6;
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
         }
-
-        .header {
-            text-align: center;
-            border-bottom: 2px solid var(--gray-200);
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-
-        .score-section {
-            text-align: center;
-            margin: 30px 0;
-        }
-
-        .score-display {
-            font-size: 3rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-
-        .score-high { color: var(--success); }
-        .score-medium { color: var(--warning); }
-        .score-low { color: var(--danger); }
-
-        .progress-bar {
-            width: 100%;
-            height: 20px;
-            background: #e5e7eb;
-            border-radius: 10px;
-            margin: 15px 0;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            border-radius: 10px;
-            transition: width 0.3s ease;
-        }
-
-        .progress-high { background: var(--success); }
-        .progress-medium { background: var(--warning); }
-        .progress-low { background: var(--danger); }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            margin: 30px 0;
-            background: #f8fafc;
-            padding: 20px;
-            border-radius: 8px;
-        }
-
-        .info-item {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .info-label {
-            font-size: 0.9rem;
-            color: var(--gray-600);
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .info-value {
-            font-size: 1rem;
-            font-weight: 600;
-        }
-
-        .url-container {
-            background: #f8fafc;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 20px 0;
-            border-left: 4px solid var(--primary);
-        }
-
-        .url-label {
-            font-size: 0.9rem;
-            color: var(--gray-600);
-            font-weight: 500;
-            margin-bottom: 8px;
-        }
-
-        .url-value {
-            font-family: 'Courier New', monospace;
-            word-break: break-all;
-            font-size: 0.9rem;
-            background: #f1f5f9;
-            padding: 10px 12px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            color: var(--gray-800);
-            margin: 40px 0 20px 0;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--gray-200);
-        }
-
-        .header-detail {
+        .container {
             background: white;
-            border: 1px solid var(--gray-200);
-            border-radius: 8px;
-            padding: 20px;
-            margin: 15px 0;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 1000px;
+            margin: 0 auto;
         }
-
-        .header-name {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 15px;
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
-
-        .header-status-present {
-            color: var(--success);
-            font-weight: 600;
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
         }
 
-        .header-status-missing {
-            color: var(--danger);
-            font-weight: 600;
-        }
-
-        .header-property {
-            margin: 8px 0;
-            padding-left: 20px;
-            position: relative;
-        }
-
-        .header-property:before {
-            content: "└─";
-            position: absolute;
-            left: 0;
-            color: var(--gray-600);
-        }
-
-        .header-value {
-            font-family: 'Courier New', monospace;
-            background: #f1f5f9;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            margin: 5px 0;
-            word-break: break-word;
-            font-size: 0.9rem;
-        }
-
-        .risk-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .risk-high {
-            background: #fef2f2;
-            color: var(--danger);
-            border: 1px solid #fecaca;
-        }
-
-        .risk-medium {
-            background: #fffbeb;
-            color: var(--warning);
-            border: 1px solid #fed7aa;
-        }
-
-        .risk-low {
-            background: #f0fdf4;
-            color: var(--success);
-            border: 1px solid #bbf7d0;
-        }
-
-        .warning-item {
-            background: #fffbeb;
-            border-left: 3px solid var(--warning);
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 0 4px 4px 0;
-            font-size: 0.9rem;
-        }
-
-        .recommendation-item {
-            background: #f0fdf4;
-            border-left: 3px solid var(--success);
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 0 4px 4px 0;
-            font-size: 0.9rem;
-        }
-
-        .info-item-small {
-            background: #f0f9ff;
-            border-left: 3px solid var(--primary);
-            padding: 8px 12px;
-            margin: 5px 0;
-            border-radius: 0 4px 4px 0;
-            font-size: 0.9rem;
-        }
-
-        .issues-section {
-            margin: 40px 0;
-        }
-
-        .issue-item {
-            background: #fef2f2;
-            border-left: 4px solid var(--danger);
-            padding: 16px 20px;
-            margin: 10px 0;
-            border-radius: 0 4px 4px 0;
-        }
-
-        .issue-warning {
-            background: #fffbeb;
-            border-left-color: var(--warning);
-        }
-
-        .recommendations {
-            background: #f0f9ff;
-            border-left: 4px solid var(--primary);
-            padding: 20px;
-            margin: 30px 0;
-            border-radius: 0 8px 8px 0;
-        }
-
-        .footer {
-            text-align: center;
-            margin-top: 50px;
-            padding-top: 20px;
-            border-top: 1px solid var(--gray-200);
-            color: var(--gray-600);
-            font-size: 0.9rem;
-        }
-
-        .new-scan-btn {
-            display: inline-block;
-            background: var(--primary);
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: 600;
-            margin-top: 20px;
-            transition: background 0.2s;
-        }
-
-        .new-scan-btn:hover {
-            background: #1d4ed8;
-        }
-
-        .stats-grid {
+        /* Статус безопасности */
+        .security-status {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 15px;
+            margin: 25px 0;
+        }
+        .status-card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            border-left: 4px solid;
+        }
+        .status-score {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .status-badge {
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        /* Информация о сканировании */
+        .scan-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
             margin: 20px 0;
         }
-
-        .stat-card {
-            background: white;
-            padding: 20px;
+        .info-item {
+            background: #f0f8ff;
+            padding: 15px;
             border-radius: 8px;
             text-align: center;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            border: 1px solid var(--gray-200);
         }
 
-        .stat-number {
-            font-size: 2rem;
+        /* Аккордеон для заголовков */
+        .headers-accordion {
+            margin: 30px 0;
+        }
+        .accordion-item {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            overflow: hidden;
+        }
+        .accordion-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             font-weight: bold;
-            margin-bottom: 5px;
+        }
+        .accordion-header:hover {
+            background: #e9ecef;
+        }
+        .accordion-content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, padding 0.3s ease;
+        }
+        .accordion-item.active .accordion-content {
+            padding: 20px;
+            max-height: 500px;
         }
 
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--gray-600);
+        /* Статусы заголовков */
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-present { color: #28a745; }
+        .status-missing { color: #dc3545; }
+        .status-warning { color: #ffc107; }
+
+        .risk-level {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .risk-critical { background: #dc3545; color: white; }
+        .risk-high { background: #fd7e14; color: white; }
+        .risk-medium { background: #ffc107; color: black; }
+        .risk-low { background: #28a745; color: white; }
+
+        /* Детали заголовка */
+        .header-details {
+            margin-top: 15px;
+        }
+        .header-value {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 12px;
+            margin: 10px 0;
+            word-break: break-all;
+        }
+        .header-notes {
+            margin: 10px 0;
+        }
+        .note {
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .note-warning { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .note-info { background: #d1ecf1; border-left: 4px solid #17a2b8; }
+        .note-success { background: #d4edda; border-left: 4px solid #28a745; }
+
+        /* Проблемы и рекомендации */
+        .problems-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
+        }
+        .recommendations {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 25px 0;
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
-            .info-grid, .stats-grid {
-                grid-template-columns: 1fr;
-            }
+        .loading {
+            display: none;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <div class="header">
+    <div class="container">
         <h1>🔐 Отчёт безопасности HTTP-заголовков</h1>
-    </div>
 
-    <!-- Score Section with Progress Bar -->
-    <div class="score-section">
-        <div class="score-display score-{% if security_score >= 80 %}high{% elif security_score >= 60 %}medium{% else %}low{% endif %}">
-            {{ security_score }}%
-        </div>
-
-        <!-- Progress Bar -->
-        <div class="progress-bar">
-            <div class="progress-fill progress-{% if security_score >= 80 %}high{% elif security_score >= 60 %}medium{% else %}low{% endif %}"
-                 style="width: {{ security_score }}%"></div>
-        </div>
-
-        <div class="score-label">
-            {% if security_score >= 80 %}
-                🟢 Отличная безопасность
-            {% elif security_score >= 60 %}
-                🟡 Хорошая безопасность
-            {% else %}
-                🟠 Требует улучшений
-            {% endif %}
-        </div>
-        <p>На основе анализа {{ total_headers }} заголовков безопасности</p>
-    </div>
-
-    <!-- URL Container -->
-    <div class="url-container">
-        <div class="url-label">🎯 Цель сканирования</div>
-        <div class="url-value">{{ target }}</div>
-        <div style="margin-top: 10px; font-size: 0.9rem; color: var(--gray-600);">
-            Финальный URL: {{ final_url }} | HTTP статус: {{ http_status }}
-        </div>
-    </div>
-
-    <!-- Statistics -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-number">{{ present_headers }}/{{ total_headers }}</div>
-            <div class="stat-label">📋 Заголовков настроено</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ critical_headers_present }}</div>
-            <div class="stat-label">🔴 Критических присутствует</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ issues|length }}</div>
-            <div class="stat-label">⚠️ Проблем обнаружено</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-number">{{ scan_duration }}с</div>
-            <div class="stat-label">⏱️ Длительность сканирования</div>
-        </div>
-    </div>
-
-    <!-- Scan Information -->
-    <div class="info-grid">
-        <div class="info-item">
-            <span class="info-label">📅 Дата сканирования</span>
-            <span class="info-value">{{ date }}</span>
-        </div>
-        <div class="info-item">
-            <span class="info-label">🔄 Редиректы</span>
-            <span class="info-value">{% if redirected %}Да{% else %}Нет{% endif %}</span>
-        </div>
-        {% if server_info.server %}
-        <div class="info-item">
-            <span class="info-label">🖥️ Сервер</span>
-            <span class="info-value">{{ server_info.server }}</span>
-        </div>
-        {% endif %}
-        {% if server_info.x_powered_by %}
-        <div class="info-item">
-            <span class="info-label">⚡ X-Powered-By</span>
-            <span class="info-value">{{ server_info.x_powered_by }}</span>
-        </div>
-        {% endif %}
-    </div>
-
-    <!-- Detailed Headers Analysis -->
-    <h2 class="section-title">🛡️ Детальный анализ заголовков</h2>
-
-    {% for header in headers %}
-    <div class="header-detail">
-        <div class="header-name">
-            {% if header.present %}
-            ✅ {{ header.name }}
-            {% else %}
-            ❌ {{ header.name }}
-            {% endif %}
-            {% if header.critical %}
-            <span style="background: var(--danger); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; margin-left: 8px;">
-                КРИТ
-            </span>
-            {% endif %}
-        </div>
-
-        <div class="header-property">
-            <strong>Статус:</strong>
-            <span class="{% if header.present %}header-status-present{% else %}header-status-missing{% endif %}">
-                {% if header.present %}ПРИСУТСТВУЕТ{% else %}ОТСУТСТВУЕТ{% endif %}
-            </span>
-        </div>
-
-        <div class="header-property">
-            <strong>Риск:</strong>
-            <span class="risk-badge risk-{{ header.risk|lower }}">
-                {% if header.risk == 'Высокий' %}
-                    Высокий риск
-                {% elif header.risk == 'Средний' %}
-                    Средний риск
-                {% else %}
-                    Низкий риск
-                {% endif %}
-            </span>
-        </div>
-
-        <div class="header-property">
-            <strong>Описание:</strong> {{ header.description }}
-        </div>
-
-        {% if header.present and header.value %}
-        <div class="header-property">
-            <strong>Значение:</strong>
-            <div class="header-value">{{ header.value|truncate(100) }}</div>
-        </div>
-        {% endif %}
-
-        <!-- Warnings -->
-        {% if header.warnings %}
-            {% for warning in header.warnings %}
-            <div class="warning-item">
-                {% if '🚨' in warning or 'КРИТИЧЕСКО' in warning %}
-                    🚨 {{ warning }}
-                {% elif '⚠️' in warning %}
-                    ⚠️ {{ warning }}
-                {% else %}
-                    ℹ️ {{ warning }}
-                {% endif %}
+        <!-- Статус безопасности -->
+        <div class="security-status">
+            <div class="status-card" style="border-left-color: #ffc107;">
+                <div class="status-score">50%</div>
+                <div class="status-badge" style="background: #ffc107; color: black;">🟠 Требует улучшений</div>
+                <div>На основе анализа 11 заголовков безопасности</div>
             </div>
-            {% endfor %}
-        {% endif %}
-
-        <!-- Recommendations -->
-        {% if header.recommendations %}
-            {% for recommendation in header.recommendations %}
-            <div class="recommendation-item">
-                {% if '✅' in recommendation %}
-                    ✅ {{ recommendation }}
-                {% else %}
-                    💡 {{ recommendation }}
-                {% endif %}
-            </div>
-            {% endfor %}
-        {% endif %}
-
-        <!-- Additional info for missing headers -->
-        {% if not header.present %}
-        <div class="info-item-small">
-            💡 Рекомендация: Необходимо добавить этот заголовок для улучшения безопасности
         </div>
-        {% endif %}
-    </div>
-    {% endfor %}
 
-    <!-- Issues Section -->
-    <div class="issues-section">
-        <h2 class="section-title">🚨 Выявленные проблемы и рекомендации</h2>
-
-        {% if issues %}
-            {% for issue in issues %}
-            <div class="issue-item {{ 'issue-warning' if '⚠️' in issue else '' }}">
-                {{ issue }}
+        <!-- Информация о сканировании -->
+        <div class="scan-info">
+            <div class="info-item">
+                <strong>🎯 Цель сканирования</strong><br>
+                https://gmail.com<br>
+                <small>Финальный URL: https://accounts.google.com/...</small>
             </div>
-            {% endfor %}
-        {% else %}
-            <div style="text-align: center; padding: 40px; color: var(--success);">
-                <div style="font-size: 3rem; margin-bottom: 15px;">🎉</div>
-                <h3>Проблем не обнаружено!</h3>
-                <p>Все критически важные заголовки безопасности настроены правильно</p>
+            <div class="info-item">
+                <strong>6/11</strong><br>
+                📋 Заголовков настроено
             </div>
-        {% endif %}
-    </div>
+            <div class="info-item">
+                <strong>2</strong><br>
+                ⚠️ Проблем обнаружено
+            </div>
+            <div class="info-item">
+                <strong>1.69с</strong><br>
+                ⏱️ Длительность сканирования
+            </div>
+        </div>
 
-    <!-- Final Recommendation -->
-    <div class="recommendations">
-        <h3>💡 Итоговая рекомендация:</h3>
-        {% if security_score >= 80 %}
-            <p style="color: var(--success); font-weight: 600;">✅ Безопасность на высоком уровне. Продолжайте в том же духе!</p>
-        {% elif security_score >= 60 %}
-            <p style="color: var(--warning); font-weight: 600;">⚠️ Хороший уровень безопасности, но есть возможности для улучшения.</p>
-        {% else %}
-            <p style="color: var(--danger); font-weight: 600;">🚨 Требуется немедленное внимание к настройкам безопасности!</p>
-        {% endif %}
+        <!-- Детальный анализ заголовков -->
+        <div class="headers-accordion">
+            <h3>🛡️ Детальный анализ заголовков</h3>
 
-        <div style="margin-top: 15px;">
+            <!-- Content-Security-Policy -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="header-status">
+                        <span class="status-present">✅ Content-Security-Policy</span>
+                        <span class="risk-level risk-medium">Средний риск</span>
+                    </div>
+                    <span>⬇️</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="header-details">
+                        <p><strong>Описание:</strong> Защита от XSS и внедрения кода</p>
+                        <div class="header-value">
+                            require-trusted-types-for 'script';report-uri /v3/signin/_/AccountsSignInUi/cspreport,...
+                        </div>
+                        <div class="header-notes">
+                            <div class="note note-warning">⚠️ CSP содержит 'unsafe-inline' - снижает безопасность</div>
+                            <div class="note note-warning">⚠️ CSP default-src слишком разрешительный</div>
+                            <div class="note note-info">ℹ️ CSP не определяет style-src политику</div>
+                            <div class="note note-success">✅ CSP настроен</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strict-Transport-Security -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="header-status">
+                        <span class="status-present">✅ Strict-Transport-Security</span>
+                        <span class="risk-level risk-low">Низкий риск</span>
+                    </div>
+                    <span>⬇️</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="header-details">
+                        <p><strong>Описание:</strong> Принудительное использование HTTPS</p>
+                        <div class="header-value">
+                            max-age=31536000; includeSubDomains
+                        </div>
+                        <div class="header-notes">
+                            <div class="note note-success">✅ HSTS включает поддомены</div>
+                            <div class="note note-success">✅ HSTS правильно настроен</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- X-Frame-Options -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="header-status">
+                        <span class="status-present">✅ X-Frame-Options</span>
+                        <span class="risk-level risk-low">Низкий риск</span>
+                    </div>
+                    <span>⬇️</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="header-details">
+                        <p><strong>Описание:</strong> Защита от clickjacking</p>
+                        <div class="header-value">
+                            DENY
+                        </div>
+                        <div class="header-notes">
+                            <div class="note note-success">✅ X-Frame-Options правильно настроен: DENY</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Referrer-Policy -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="header-status">
+                        <span class="status-missing">❌ Referrer-Policy</span>
+                        <span class="risk-level risk-low">Низкий риск</span>
+                    </div>
+                    <span>⬇️</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="header-details">
+                        <p><strong>Описание:</strong> Контроль утечки referrer данных</p>
+                        <div class="header-notes">
+                            <div class="note note-warning">⚠️ Referrer-Policy отсутствует — возможна утечка referrer данных</div>
+                            <div class="note note-info">💡 Рекомендация: Необходимо добавить этот заголовок для улучшения безопасности</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CORS Headers -->
+            <div class="accordion-item">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <div class="header-status">
+                        <span class="status-missing">❌ CORS Headers</span>
+                        <span class="risk-level risk-low">Низкий риск</span>
+                    </div>
+                    <span>⬇️</span>
+                </div>
+                <div class="accordion-content">
+                    <div class="header-details">
+                        <div class="header-notes">
+                            <div class="note note-warning">⚠️ Access-Control-Allow-Origin отсутствует — может потребоваться для API</div>
+                            <div class="note note-warning">⚠️ Access-Control-Allow-Credentials отсутствует — может потребоваться для API</div>
+                            <div class="note note-info">💡 Рекомендация: Необходимо добавить CORS заголовки для улучшения безопасности</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Проблемы и рекомендации -->
+        <div class="problems-section">
+            <h3>🚨 Выявленные проблемы и рекомендации</h3>
+            <ul>
+                <li>Access-Control-Allow-Origin отсутствует — может потребоваться для API</li>
+                <li>Access-Control-Allow-Credentials отсутствует — может потребоваться для API</li>
+                <li>CSP содержит потенциально опасные настройки</li>
+            </ul>
+        </div>
+
+        <div class="recommendations">
+            <h3>💡 Итоговая рекомендация:</h3>
+            <p><strong>🚨 Требуется немедленное внимание к настройкам безопасности!</strong></p>
+            <p>Рекомендуется настроить отсутствующие CORS заголовки и улучшить политику CSP.</p>
+        </div>
+
+        <!-- Статистика сканирования -->
+        <div style="text-align: center; margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
             <strong>📊 Статистика сканирования:</strong><br>
-            • Цель: {{ target }}<br>
-            • Оценка безопасности: {{ security_score }}%<br>
-            • Заголовков проверено: {{ total_headers }}<br>
-            • Проблем обнаружено: {{ issues|length }}<br>
-            • Время сканирования: {{ scan_duration }} секунд
+            • Цель: https://gmail.com • Оценка безопасности: 50% • Заголовков проверено: 11 • Проблем обнаружено: 2 • Время сканирования: 1.69 секунд
         </div>
     </div>
 
-    <!-- Actions -->
-    <div style="text-align: center; margin: 40px 0;">
-        <a href="/" class="new-scan-btn">
-            🔄 Новое сканирование
-        </a>
-        <p style="color: var(--gray-600); margin-top: 10px; font-size: 0.9rem;">
-            Сканируйте другие URL для проверки безопасности
-        </p>
-    </div>
+    <script>
+        function toggleAccordion(header) {
+            const item = header.parentElement;
+            const content = item.querySelector('.accordion-content');
+            const isActive = item.classList.contains('active');
 
-    <!-- Footer -->
-    <div class="footer">
-        <p>Отчёт сгенерирован автоматически CORS Security Scanner</p>
-        <p>Время создания: {{ date }}</p>
-    </div>
+            // Закрываем все аккордеоны
+            document.querySelectorAll('.accordion-item').forEach(acc => {
+                acc.classList.remove('active');
+            });
+
+            // Открываем текущий, если он был закрыт
+            if (!isActive) {
+                item.classList.add('active');
+            }
+        }
+
+        // Автоматически открываем первый аккордеон с проблемами
+        document.addEventListener('DOMContentLoaded', function() {
+            const firstProblem = document.querySelector('.accordion-item');
+            if (firstProblem) {
+                firstProblem.classList.add('active');
+            }
+        });
+    </script>
 </body>
 </html>
