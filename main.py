@@ -11,8 +11,8 @@ import os
 import sys
 from typing import Optional
 from scanner import scan_headers
-from report_generator import generate_html_report_jinja
-from report import save_report_to_file
+from report_generator import generate_html_report
+from report import save_report_to_file, print_report
 
 
 def check_template() -> None:
@@ -64,6 +64,7 @@ def print_summary(results: dict, output_format: str, output_path: str) -> None:
     print(f"🛡️  Оценка безопасности: {results['security_score']}%")
     print(f"📋 Заголовков проверено: {results['total_headers']}")
     print(f"⚠️  Проблем обнаружено: {len(results['issues'])}")
+    print(f"⏱️  Длительность сканирования: {results.get('scan_duration', 'N/A')}с")
     print(f"💾 Формат отчета: {output_format}")
     print(f"📁 Файл отчета: {output_path}")
     print("=" * 50)
@@ -99,9 +100,9 @@ def setup_argparse() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--format", "-f",
-        choices=["html", "text", "both"],
-        help="Формат вывода отчета (по умолчанию: html)",
-        default="html"
+        choices=["html", "text", "both", "console"],
+        help="Формат вывода отчета (по умолчанию: console)",
+        default="console"
     )
 
     parser.add_argument(
@@ -123,6 +124,12 @@ def setup_argparse() -> argparse.ArgumentParser:
         help="Таймаут запроса в секундах (по умолчанию: 15)"
     )
 
+    parser.add_argument(
+        "--no-color",
+        action="store_true",
+        help="Отключить цветной вывод в консоли"
+    )
+
     return parser
 
 
@@ -142,40 +149,53 @@ def main() -> Optional[int]:
     # Валидация входных данных
     if not validate_url(args.url):
         return 1
+
     # Проверка шаблонов (для HTML отчетов)
     if args.format in ["html", "both"]:
         try:
             check_template()
         except SystemExit:
             return 1
+
     if args.verbose:
         print(f"🔍 Начинаем сканирование: {args.url}")
         print(f"⏰ Таймаут: {args.timeout} секунд")
+
     try:
         # Выполняем сканирование
-        results = scan_headers(args.url)
-        if results["error"]:
+        results = scan_headers(args.url, timeout=args.timeout)
+
+        if results.get("error"):
             print("❌ Ошибка при сканировании:")
-            for issue in results["issues"]:
+            for issue in results.get("issues", []):
                 print(f"   {issue}")
             return 1
+
         # Генерация отчетов в выбранном формате
         if args.format in ["html", "both"]:
             if args.verbose:
                 print(f"💾 Генерируем HTML отчет: {args.html}")
-            generate_html_report_jinja(results, output_path=args.html)
+            try:
+                generate_html_report(results, output_path=args.html)
+                print(f"✅ HTML отчет сохранен: {args.html}")
+            except Exception as e:
+                print(f"❌ Ошибка генерации HTML отчета: {e}")
+                if args.format == "html":  # Если только HTML - выходим с ошибкой
+                    return 1
+
         if args.format in ["text", "both"]:
             if args.verbose:
                 print(f"💾 Генерируем текстовый отчет: {args.output}")
-            success = save_report_to_file(
-                results["headers"],
-                results["issues"],
-                results["target"],
-                results["security_score"],
-                args.output
-            )
-            if not success:
-                return 1
+            success = save_report_to_file(results, args.output)
+            if success:
+                print(f"✅ Текстовый отчет сохранен: {args.output}")
+            else:
+                if args.format == "text":  # Если только текст - выходим с ошибкой
+                    return 1
+
+        # Консольный вывод (по умолчанию или если указан explicitly)
+        if args.format in ["console", "both"] or args.format == "console":
+            print_report(results)
 
         # Вывод сводки
         print_summary(results, args.format, args.html if args.format == "html" else args.output)
@@ -183,9 +203,10 @@ def main() -> Optional[int]:
         # Дополнительная информация при наличии проблем
         if results["security_score"] < 60 and len(results["issues"]) > 0:
             print("\n🚨 РЕКОМЕНДАЦИИ ПО УЛУЧШЕНИЮ БЕЗОПАСНОСТИ:")
-            for issue in results["issues"][:5]:  # Показываем первые 5 проблем
-                if issue.startswith(("❌", "⚠️")):
-                    print(f"   {issue}")
+            critical_issues = [issue for issue in results["issues"]
+                               if issue.startswith(("🚨", "❌"))]
+            for issue in critical_issues[:5]:  # Показываем первые 5 критических проблем
+                print(f"   {issue}")
 
         return 0
 
