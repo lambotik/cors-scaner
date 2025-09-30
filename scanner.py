@@ -76,88 +76,77 @@ def analyze_security_headers(response) -> Dict[str, Any]:
     Детальный анализ каждого заголовка безопасности
     """
     headers = []
-    issues = []
-    recommendations = []
+    global_issues = []
+    global_recommendations = []
     present_headers = 0
 
-    # Конфигурация заголовков с детальным описанием
+    # Конфигурация заголовков ТОЛЬКО с описаниями
     headers_config = [
         {
             'name': 'Content-Security-Policy',
             'critical': True,
             'description': 'Защита от XSS и внедрения кода',
-            'risk_description': 'Без CSP сайт уязвим к внедрению вредоносных скриптов и XSS атакам',
-            'recommendation': 'Настройте CSP с минимально необходимыми источниками, избегая unsafe-inline и unsafe-eval'
+            'risk_description': 'Без CSP сайт уязвим к внедрению вредоносных скриптов и XSS атакам'
         },
         {
             'name': 'Strict-Transport-Security',
             'critical': True,
             'description': 'Принудительное использование HTTPS',
-            'risk_description': 'Без HSTS возможны downgrade атаки и перехват трафика',
-            'recommendation': 'Установите HSTS с max-age не менее 31536000 и includeSubDomains'
+            'risk_description': 'Без HSTS возможны downgrade атаки и перехват трафика'
         },
         {
             'name': 'X-Frame-Options',
             'critical': True,
             'description': 'Защита от clickjacking',
-            'risk_description': 'Без защиты сайт можно встроить в iframe для обманных действий',
-            'recommendation': 'Установите X-Frame-Options: DENY для полной защиты'
+            'risk_description': 'Без защиты сайт можно встроить в iframe для обманных действий'
         },
         {
             'name': 'X-Content-Type-Options',
             'critical': True,
             'description': 'Блокировка MIME-sniffing',
-            'risk_description': 'Браузер может неправильно определить тип контента, что приведет к уязвимостям',
-            'recommendation': 'Всегда используйте X-Content-Type-Options: nosniff'
+            'risk_description': 'Браузер может неправильно определить тип контента, что приведет к уязвимостям'
         },
         {
             'name': 'Referrer-Policy',
             'critical': False,
             'description': 'Контроль утечки referrer данных',
-            'risk_description': 'Может привести к утечке чувствительных данных в URL',
-            'recommendation': 'Используйте strict-origin-when-cross-origin для баланса безопасности и функциональности'
+            'risk_description': 'Может привести к утечке чувствительных данных в URL'
         },
         {
             'name': 'Permissions-Policy',
             'critical': False,
             'description': 'Управление доступом к API браузера',
-            'risk_description': 'Сайт может получить доступ к камере, микрофону без согласия пользователя',
-            'recommendation': 'Ограничьте доступ к чувствительным API: camera=(), microphone=(), geolocation=()'
+            'risk_description': 'Сайт может получить доступ к камере, микрофону без согласия пользователя'
         },
         {
             'name': 'Access-Control-Allow-Origin',
             'critical': False,
             'description': 'CORS политика - разрешенные домены',
-            'risk_description': 'Неправильная настройка может открыть API для любых доменов',
-            'recommendation': 'Используйте конкретные домены вместо *, проверяйте Origin на сервере'
+            'risk_description': 'Неправильная настройка может открыть API для любых доменов'
         },
         {
             'name': 'Access-Control-Allow-Methods',
             'critical': False,
             'description': 'CORS разрешенные методы',
-            'risk_description': 'Разрешение опасных методов (PUT, DELETE) может привести к уязвимостям',
-            'recommendation': 'Разрешайте только необходимые методы (GET, POST)'
+            'risk_description': 'Разрешение опасных методов (PUT, DELETE) может привести к уязвимостям'
         },
         {
             'name': 'Access-Control-Allow-Headers',
             'critical': False,
             'description': 'CORS разрешенные заголовки',
-            'risk_description': 'Избыточные разрешения могут обойти защиту',
-            'recommendation': 'Разрешайте только необходимые заголовки'
+            'risk_description': 'Избыточные разрешения могут обойти защиту'
         },
         {
             'name': 'Access-Control-Allow-Credentials',
             'critical': False,
             'description': 'CORS передача учетных данных',
-            'risk_description': 'В сочетании с ACAO: * создает критическую уязвимость',
-            'recommendation': 'Используйте только когда необходимо, с строгой проверкой Origin'
+            'risk_description': 'В сочетании с ACAO: * создает критическую уязвимость'
         },
         {
             'name': 'X-XSS-Protection',
             'critical': False,
             'description': 'Защита от XSS (устаревшая)',
-            'risk_description': 'Устаревшая защита, не эффективна в современных браузерах',
-            'recommendation': 'Замените на Content-Security-Policy для современной защиты'
+            'risk_description': 'Устаревшая защита, не эффективна в современных браузерах'
         }
     ]
 
@@ -166,9 +155,10 @@ def analyze_security_headers(response) -> Dict[str, Any]:
         header_value = response.headers.get(header_name)
         is_present = header_value is not None
 
-        # Анализ качества настройки
+        # Анализ качества настройки (ТОЛЬКО анализ, без рекомендаций)
         analysis = analyze_header_quality(header_name, header_value, is_present)
 
+        # Формируем данные заголовка
         header_data = {
             'name': header_name,
             'present': is_present,
@@ -176,62 +166,54 @@ def analyze_security_headers(response) -> Dict[str, Any]:
             'critical': config['critical'],
             'description': config['description'],
             'risk_description': config['risk_description'],
-            'recommendation': config['recommendation'],
             'risk_level': analysis['risk_level'],
             'quality_score': analysis['quality_score'],
-            'notes': analysis['notes']
+            'notes': analysis['notes']  # Только заметки, без рекомендаций
         }
 
         headers.append(header_data)
 
-        if is_present:
-            present_headers += 1
-            issues.extend(analysis['issues'])
-            recommendations.extend(analysis['recommendations'])
-        else:
+        # Глобальные проблемы и рекомендации (только если заголовок отсутствует)
+        if not is_present:
             if config['critical']:
-                issues.append(f"❌ {header_name} отсутствует — {config['risk_description']}")
-                recommendations.append(f"💡 {config['recommendation']}")
+                global_issues.append(f"❌ {header_name} отсутствует — {config['risk_description']}")
+                global_recommendations.append(generate_header_recommendation(header_name))
             else:
-                issues.append(f"⚠️ {header_name} отсутствует — {config['risk_description']}")
+                global_issues.append(f"⚠️ {header_name} отсутствует — {config['risk_description']}")
 
     return {
         'headers': headers,
-        'issues': issues,
-        'recommendations': recommendations,
+        'issues': global_issues,
+        'recommendations': global_recommendations,
         'present_headers': present_headers
     }
 
 
 def analyze_header_quality(header_name: str, value: str, is_present: bool) -> Dict[str, Any]:
     """
-    Анализ качества настройки заголовка
+    Анализ качества настройки заголовка (ТОЛЬКО анализ, без рекомендаций)
     """
     analysis = {
         'risk_level': 'Низкий',
-        'quality_score': 100,
-        'notes': [],
-        'issues': [],
-        'recommendations': []
+        'quality_score': 100 if is_present else 0,
+        'notes': []
     }
 
     if not is_present:
         analysis['risk_level'] = 'Высокий' if header_name in ['Content-Security-Policy', 'Strict-Transport-Security',
                                                               'X-Frame-Options'] else 'Средний'
-        analysis['quality_score'] = 0
         return analysis
 
-    # Анализ конкретных заголовков
+    # Анализ качества для присутствующих заголовков
     if header_name == 'Content-Security-Policy':
         if 'unsafe-inline' in value:
             analysis['risk_level'] = 'Средний'
             analysis['quality_score'] = 60
-            analysis['issues'].append('CSP содержит unsafe-inline - снижает безопасность')
-            analysis['recommendations'].append('Замените unsafe-inline на nonce или hash')
+            analysis['notes'].append('CSP содержит unsafe-inline - снижает безопасность')
         if 'unsafe-eval' in value:
             analysis['risk_level'] = 'Средний'
             analysis['quality_score'] = max(analysis['quality_score'] - 20, 0)
-            analysis['issues'].append('CSP содержит unsafe-eval - потенциально опасно')
+            analysis['notes'].append('CSP содержит unsafe-eval - потенциально опасно')
         if "'self'" in value and not any(x in value for x in ['unsafe-inline', 'unsafe-eval', '*']):
             analysis['notes'].append('CSP правильно ограничивает источники')
 
@@ -242,7 +224,7 @@ def analyze_header_quality(header_name: str, value: str, is_present: bool) -> Di
             analysis['notes'].append('HSTS включает поддомены - правильно')
         else:
             analysis['risk_level'] = 'Средний'
-            analysis['issues'].append('HSTS не включает поддомены')
+            analysis['notes'].append('HSTS не включает поддомены')
 
     elif header_name == 'X-Frame-Options':
         if value == 'DENY':
@@ -255,18 +237,46 @@ def analyze_header_quality(header_name: str, value: str, is_present: bool) -> Di
         if value == '*':
             analysis['risk_level'] = 'Высокий'
             analysis['quality_score'] = 30
-            analysis['issues'].append('CORS открыт для всех доменов - критическая уязвимость')
-            analysis['recommendations'].append('Замените * на конкретные доверенные домены')
+            analysis['notes'].append('CORS открыт для всех доменов - критическая уязвимость')
         elif value and value != '*':
             analysis['notes'].append('CORS ограничен конкретными доменами - безопасно')
 
     elif header_name == 'Access-Control-Allow-Credentials':
         if value == 'true':
             analysis['risk_level'] = 'Высокий'
-            analysis['issues'].append('CORS разрешает передачу учетных данных')
-            analysis['recommendations'].append('Убедитесь, что ACAO не установлен в *')
+            analysis['notes'].append('CORS разрешает передачу учетных данных')
+
+    elif header_name == 'Permissions-Policy':
+        if not any(feature in value for feature in ['camera', 'microphone', 'geolocation']):
+            analysis['notes'].append('Базовые ограничения настроены')
+        elif 'camera=()' in value and 'microphone=()' in value and 'geolocation=()' in value:
+            analysis['notes'].append('Доступ к чувствительным API правильно ограничен')
+        else:
+            analysis['risk_level'] = 'Средний'
+            analysis['notes'].append('Рекомендуется ограничить доступ к чувствительным API')
 
     return analysis
+
+
+def generate_header_recommendation(header_name: str) -> str:
+    """
+    Генерация рекомендаций ТОЛЬКО для отсутствующих заголовков
+    """
+    recommendations = {
+        'Content-Security-Policy': 'Настройте Content-Security-Policy для защиты от XSS атак',
+        'Strict-Transport-Security': 'Добавьте HSTS для принудительного использования HTTPS',
+        'X-Frame-Options': 'Настройте X-Frame-Options: DENY для защиты от clickjacking',
+        'X-Content-Type-Options': 'Добавьте X-Content-Type-Options: nosniff',
+        'Referrer-Policy': 'Настройте Referrer-Policy для контроля утечки данных',
+        'Permissions-Policy': 'Ограничьте доступ к API: camera=(), microphone=(), geolocation=()',
+        'Access-Control-Allow-Origin': 'Настройте CORS политику для API если необходимо',
+        'Access-Control-Allow-Methods': 'Ограничьте разрешенные CORS методы',
+        'Access-Control-Allow-Headers': 'Ограничьте разрешенные CORS заголовки',
+        'Access-Control-Allow-Credentials': 'Настройте CORS credentials если необходимо',
+        'X-XSS-Protection': 'Замените на Content-Security-Policy для современной защиты'
+    }
+
+    return f"💡 {recommendations.get(header_name, f'Настройте {header_name}')}"
 
 
 def analyze_cors_policy(target_url: str, base_response) -> Dict[str, Any]:

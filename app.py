@@ -12,18 +12,19 @@ def format_results_for_template(results):
     """
     Преобразует результаты сканирования в структуру для нового шаблона
     """
-    # Очищаем проблемы от лишних символов но сохраняем эмодзи
+    # Очищаем проблемы и рекомендации
     cleaned_problems = []
     for problem in results.get('issues', []):
         cleaned = problem.replace("X-", "").replace("A.", "").strip()
         cleaned = ' '.join(cleaned.split())
         cleaned_problems.append(cleaned)
 
-    # Очищаем рекомендации
     cleaned_recommendations = []
     for rec in results.get('recommendations', []):
         cleaned_rec = rec.strip()
-        cleaned_recommendations.append(cleaned_rec)
+        # Убираем дубликаты рекомендаций
+        if cleaned_rec not in cleaned_recommendations:
+            cleaned_recommendations.append(cleaned_rec)
 
     # Базовая структура
     formatted = {
@@ -39,13 +40,13 @@ def format_results_for_template(results):
         'redirects': results.get('redirects', False),
         'http_status': results.get('http_status', 0),
         'problems': cleaned_problems,
-        'recommendations': cleaned_recommendations,
+        'recommendations': cleaned_recommendations,  # Только уникальные рекомендации
         'cors_analysis': results.get('cors_analysis', {}),
         'scan_details': results.get('scan_details', {}),
         'final_recommendation': generate_final_recommendation(results)
     }
 
-    # Группируем заголовки по разделам с улучшенной структурой
+    # Группируем заголовки по разделам
     headers_data = {
         'cors': [],
         'security': [],
@@ -53,7 +54,6 @@ def format_results_for_template(results):
         'other': []
     }
 
-    # Определяем к какой категории относится каждый заголовок
     cors_headers = ['Access-Control-Allow-Origin', 'Access-Control-Allow-Methods',
                     'Access-Control-Allow-Headers', 'Access-Control-Allow-Credentials']
 
@@ -62,14 +62,11 @@ def format_results_for_template(results):
 
     privacy_headers = ['Referrer-Policy', 'Permissions-Policy']
 
-    # Обрабатываем каждый заголовок из результатов
+    # Обрабатываем каждый заголовок
     for header_info in results.get('headers', []):
         header_name = header_info.get('name', '')
-
-        # Определяем статус для нового шаблона
         status = 'present' if header_info.get('present', False) else 'missing'
 
-        # Создаем улучшенную структуру заголовка
         header_data = {
             'name': header_name,
             'status': status,
@@ -77,35 +74,16 @@ def format_results_for_template(results):
             'risk_text': header_info.get('risk_level', 'Низкий риск'),
             'description': header_info.get('description', ''),
             'risk_description': header_info.get('risk_description', ''),
-            'recommendation': header_info.get('recommendation', ''),
             'value': header_info.get('value', ''),
             'quality_score': header_info.get('quality_score', 0),
             'critical': header_info.get('critical', False),
             'notes': []
         }
 
-        # Добавляем заметки из анализа
+        # Добавляем ТОЛЬКО заметки из анализа (без рекомендаций)
         for note in header_info.get('notes', []):
-            header_data['notes'].append({'type': 'success', 'text': note})
-
-        for issue in header_info.get('issues', []):
-            header_data['notes'].append({'type': 'warning', 'text': issue})
-
-        for rec in header_info.get('recommendations', []):
-            header_data['notes'].append({'type': 'info', 'text': rec})
-
-        # Если заголовок отсутствует, добавляем соответствующую заметку
-        if not header_info.get('present', False):
-            if header_info.get('critical', False):
-                header_data['notes'].append({
-                    'type': 'warning',
-                    'text': f'❌ Критический заголовок отсутствует: {header_info.get("risk_description", "")}'
-                })
-            else:
-                header_data['notes'].append({
-                    'type': 'info',
-                    'text': f'💡 Рекомендация: {header_info.get("recommendation", "")}'
-                })
+            header_data['notes'].append(
+                {'type': 'success' if 'правильно' in note or 'отлично' in note else 'warning', 'text': note})
 
         # Распределяем по категориям
         if header_name in cors_headers:
