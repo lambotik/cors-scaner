@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>CORS-сканер безопасности</title>
+    <title>Отчёт безопасности HTTP-заголовков</title>
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <style>
         body {
@@ -80,7 +80,7 @@
             padding: 3px 0;
         }
 
-        /* Остальные стили остаются без изменений */
+        /* Стили статуса безопасности */
         .security-status {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -99,13 +99,8 @@
             font-weight: bold;
             margin: 10px 0;
         }
-        .status-badge {
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-weight: bold;
-            display: inline-block;
-        }
 
+        /* Информация о сканировании */
         .scan-info {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -119,6 +114,7 @@
             text-align: center;
         }
 
+        /* Секции заголовков */
         .section {
             margin: 30px 0;
         }
@@ -133,6 +129,7 @@
             gap: 10px;
         }
 
+        /* Аккордеон для заголовков */
         .headers-accordion {
             margin: 10px 0;
         }
@@ -162,17 +159,32 @@
         }
         .accordion-item.active .accordion-content {
             padding: 20px;
-            max-height: 500px;
+            max-height: 1000px;
         }
 
+        /* Статусы заголовков */
         .header-status {
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
         .status-present { color: #28a745; }
         .status-missing { color: #dc3545; }
         .status-warning { color: #ffc107; }
+
+        /* Бейджи рисков */
+        .risk-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .risk-critical { background: #dc3545; color: white; }
+        .risk-high { background: #fd7e14; color: white; }
+        .risk-medium { background: #ffc107; color: black; }
+        .risk-low { background: #28a745; color: white; }
 
         .risk-level {
             padding: 3px 8px;
@@ -180,16 +192,16 @@
             font-size: 12px;
             font-weight: bold;
         }
-        .risk-critical { background: #dc3545; color: white; }
-        .risk-high { background: #fd7e14; color: white; }
-        .risk-medium { background: #ffc107; color: black; }
-        .risk-low { background: #28a745; color: white; }
 
-        .header-details {
-            margin-top: 15px;
+        /* Детали заголовка */
+        .header-details-expanded {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
         }
         .header-value {
-            background: #f8f9fa;
+            background: #e9ecef;
             padding: 10px;
             border-radius: 5px;
             font-family: monospace;
@@ -209,7 +221,17 @@
         .note-warning { background: #fff3cd; border-left: 4px solid #ffc107; }
         .note-info { background: #d1ecf1; border-left: 4px solid #17a2b8; }
         .note-success { background: #d4edda; border-left: 4px solid #28a745; }
+        .note-danger { background: #f8d7da; border-left: 4px solid #dc3545; }
 
+        .risk-explanation {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+
+        /* Проблемы и рекомендации */
         .problems-section {
             background: #fff3cd;
             border: 1px solid #ffeaa7;
@@ -224,29 +246,46 @@
             padding: 20px;
             margin: 25px 0;
         }
+
+        /* Метры качества */
+        .quality-meter {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .quality-score {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 5px 0;
+        }
+
+        /* Итоговая рекомендация */
+        .final-recommendation.success { background: #d4edda; border-color: #c3e6cb; }
+        .final-recommendation.warning { background: #fff3cd; border-color: #ffeaa7; }
+        .final-recommendation.danger { background: #f8d7da; border-color: #f5c6cb; }
+        .final-recommendation.critical { background: #dc3545; color: white; border-color: #c82333; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🔐 Отчёт безопасности HTTP-заголовков</h1>
+        <h1>🔐 Детальный отчёт безопасности HTTP-заголовков</h1>
 
-        <!-- Статус безопасности -->
+        <!-- Общая сводка -->
         <div class="security-status">
-            <div class="status-card" style="border-left-color: #ffc107;">
+            <div class="status-card" style="border-left-color: {% if security_score >= 80 %}#28a745{% elif security_score >= 60 %}#ffc107{% else %}#dc3545{% endif %};">
                 <div class="status-score">{{ security_score }}%</div>
-                <div class="status-badge" style="background: #ffc107; color: black;">🟠 Требует улучшений</div>
+                <div class="risk-badge risk-{{ risk_level|lower }}">Уровень риска: {{ risk_level }}</div>
                 <div>На основе анализа {{ total_headers }} заголовков безопасности</div>
             </div>
         </div>
 
-        <!-- Информация о сканировании -->
+        <!-- Детали сканирования -->
         <div class="scan-info">
             <div class="info-item">
                 <strong>🎯 Цель сканирования</strong><br>
                 {{ target_url }}<br>
-                {% if final_url %}
-                <small>Финальный URL: {{ final_url }}</small>
-                {% endif %}
+                <small>HTTP статус: {{ http_status }}</small>
             </div>
             <div class="info-item">
                 <strong>{{ configured_headers }}/{{ total_headers }}</strong><br>
@@ -257,16 +296,29 @@
                 ⚠️ Проблем обнаружено
             </div>
             <div class="info-item">
-                <strong>{{ scan_duration }}</strong><br>
-                ⏱️ Длительность сканирования
+                <strong>{{ server_info }}</strong><br>
+                🖥️ Сервер
             </div>
         </div>
 
-        <!-- Секция CORS -->
+        <!-- Детали оценки -->
+        {% if scan_details %}
+        <div class="quality-meter">
+            <h4>📊 Детали оценки безопасности:</h4>
+            <div class="quality-score">Базовые заголовки: {{ scan_details.base_headers_score }}%</div>
+            <div class="quality-score">Качество настройки: {{ scan_details.quality_score }}%</div>
+            <div class="quality-score">Критические заголовки: {{ scan_details.critical_headers_present }} настроено</div>
+        </div>
+        {% endif %}
+
+        <!-- Секция CORS с улучшенной информацией -->
         <div class="section">
             <div class="section-header">
                 <span>🌐</span>
                 <h3>CORS Политика</h3>
+                {% if cors_analysis.security_level %}
+                <span class="risk-badge risk-{{ cors_analysis.security_level|lower }}">{{ cors_analysis.security_level }} риск</span>
+                {% endif %}
             </div>
             <div class="headers-accordion">
                 {% for header in headers.cors %}
@@ -281,65 +333,46 @@
                             <span class="status-warning">⚠️ {{ header.name }}</span>
                             {% endif %}
                             <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                            {% if header.quality_score < 100 %}
+                            <span class="quality-score">Качество: {{ header.quality_score }}%</span>
+                            {% endif %}
                         </div>
                         <span>⬇️</span>
                     </div>
                     <div class="accordion-content">
-                        <div class="header-details">
-                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                        <div class="header-details-expanded">
+                            <p><strong>Назначение:</strong> {{ header.description }}</p>
+
+                            {% if header.risk_description %}
+                            <div class="risk-explanation">
+                                <strong>Риск при отсутствии:</strong> {{ header.risk_description }}
+                            </div>
+                            {% endif %}
+
                             {% if header.value %}
                             <div class="header-value">
+                                <strong>Текущее значение:</strong><br>
                                 {{ header.value }}
                             </div>
                             {% endif %}
+
                             <div class="header-notes">
                                 {% for note in header.notes %}
                                 <div class="note note-{{ note.type }}">{{ note.text }}</div>
                                 {% endfor %}
                             </div>
+
+                            {% if header.recommendation %}
+                            <div class="note note-info">
+                                <strong>💡 Рекомендация:</strong> {{ header.recommendation }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
                 {% endfor %}
             </div>
         </div>
-
-    <!-- Добавь после секции CORS -->
-    {% if cors_analysis %}
-    <div class="section">
-        <div class="section-header">
-            <span>🔍</span>
-            <h3>Детальный CORS Анализ</h3>
-        </div>
-
-        {% if cors_analysis.simple_request %}
-        <div class="cors-test">
-            <h4>📤 Простые CORS запросы</h4>
-            {% for origin, headers in cors_analysis.simple_request.items() %}
-            <div class="cors-result">
-                <strong>Origin: {{ origin }}</strong>
-                <div class="header-value">
-                    {% for key, value in headers.items() %}
-                    {{ key }}: {{ value }}<br>
-                    {% endfor %}
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        {% if cors_analysis.preflight_request %}
-        <div class="cors-test">
-            <h4>📥 Preflight запросы (OPTIONS)</h4>
-            <div class="header-value">
-                {% for key, value in cors_analysis.preflight_request.items() %}
-                {{ key }}: {{ value }}<br>
-                {% endfor %}
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
 
         <!-- Секция Безопасности -->
         <div class="section">
@@ -360,22 +393,40 @@
                             <span class="status-warning">⚠️ {{ header.name }}</span>
                             {% endif %}
                             <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                            {% if header.quality_score < 100 %}
+                            <span class="quality-score">Качество: {{ header.quality_score }}%</span>
+                            {% endif %}
                         </div>
                         <span>⬇️</span>
                     </div>
                     <div class="accordion-content">
-                        <div class="header-details">
-                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                        <div class="header-details-expanded">
+                            <p><strong>Назначение:</strong> {{ header.description }}</p>
+
+                            {% if header.risk_description %}
+                            <div class="risk-explanation">
+                                <strong>Риск при отсутствии:</strong> {{ header.risk_description }}
+                            </div>
+                            {% endif %}
+
                             {% if header.value %}
                             <div class="header-value">
+                                <strong>Текущее значение:</strong><br>
                                 {{ header.value }}
                             </div>
                             {% endif %}
+
                             <div class="header-notes">
                                 {% for note in header.notes %}
                                 <div class="note note-{{ note.type }}">{{ note.text }}</div>
                                 {% endfor %}
                             </div>
+
+                            {% if header.recommendation %}
+                            <div class="note note-info">
+                                <strong>💡 Рекомендация:</strong> {{ header.recommendation }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -402,22 +453,40 @@
                             <span class="status-warning">⚠️ {{ header.name }}</span>
                             {% endif %}
                             <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                            {% if header.quality_score < 100 %}
+                            <span class="quality-score">Качество: {{ header.quality_score }}%</span>
+                            {% endif %}
                         </div>
                         <span>⬇️</span>
                     </div>
                     <div class="accordion-content">
-                        <div class="header-details">
-                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                        <div class="header-details-expanded">
+                            <p><strong>Назначение:</strong> {{ header.description }}</p>
+
+                            {% if header.risk_description %}
+                            <div class="risk-explanation">
+                                <strong>Риск при отсутствии:</strong> {{ header.risk_description }}
+                            </div>
+                            {% endif %}
+
                             {% if header.value %}
                             <div class="header-value">
+                                <strong>Текущее значение:</strong><br>
                                 {{ header.value }}
                             </div>
                             {% endif %}
+
                             <div class="header-notes">
                                 {% for note in header.notes %}
                                 <div class="note note-{{ note.type }}">{{ note.text }}</div>
                                 {% endfor %}
                             </div>
+
+                            {% if header.recommendation %}
+                            <div class="note note-info">
+                                <strong>💡 Рекомендация:</strong> {{ header.recommendation }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -444,22 +513,40 @@
                             <span class="status-warning">⚠️ {{ header.name }}</span>
                             {% endif %}
                             <span class="risk-level risk-{{ header.risk_level }}">{{ header.risk_text }}</span>
+                            {% if header.quality_score < 100 %}
+                            <span class="quality-score">Качество: {{ header.quality_score }}%</span>
+                            {% endif %}
                         </div>
                         <span>⬇️</span>
                     </div>
                     <div class="accordion-content">
-                        <div class="header-details">
-                            <p><strong>Описание:</strong> {{ header.description }}</p>
+                        <div class="header-details-expanded">
+                            <p><strong>Назначение:</strong> {{ header.description }}</p>
+
+                            {% if header.risk_description %}
+                            <div class="risk-explanation">
+                                <strong>Риск при отсутствии:</strong> {{ header.risk_description }}
+                            </div>
+                            {% endif %}
+
                             {% if header.value %}
                             <div class="header-value">
+                                <strong>Текущее значение:</strong><br>
                                 {{ header.value }}
                             </div>
                             {% endif %}
+
                             <div class="header-notes">
                                 {% for note in header.notes %}
                                 <div class="note note-{{ note.type }}">{{ note.text }}</div>
                                 {% endfor %}
                             </div>
+
+                            {% if header.recommendation %}
+                            <div class="note note-info">
+                                <strong>💡 Рекомендация:</strong> {{ header.recommendation }}
+                            </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -470,7 +557,7 @@
         <!-- Проблемы и рекомендации -->
         {% if problems %}
         <div class="problems-section">
-            <h3>🚨 Выявленные проблемы и рекомендации</h3>
+            <h3>🚨 Выявленные проблемы безопасности</h3>
             <ul>
                 {% for problem in problems %}
                 <li>{{ problem }}</li>
@@ -479,28 +566,45 @@
         </div>
         {% endif %}
 
-        {% if final_recommendation %}
+        <!-- Улучшенный блок рекомендаций -->
+        {% if recommendations %}
         <div class="recommendations">
-            <h3>💡 Итоговая рекомендация:</h3>
+            <h3>💡 Приоритетные рекомендации:</h3>
+            <ol>
+                {% for recommendation in recommendations %}
+                <li>{{ recommendation }}</li>
+                {% endfor %}
+            </ol>
+        </div>
+        {% endif %}
+
+        <!-- Итоговая рекомендация с цветовой индикацией -->
+        <div class="recommendations final-recommendation {{ final_recommendation.level }}">
+            <h3>🎯 Итоговая оценка:</h3>
             <p><strong>{{ final_recommendation.title }}</strong></p>
             <p>{{ final_recommendation.description }}</p>
         </div>
-        {% endif %}
 
         <!-- Кнопка нового сканирования -->
         <a href="{{ url_for('index') }}" class="new-scan-btn">
             🔍 Начать новое сканирование
         </a>
 
-        <!-- Статистика сканирования в столбик -->
+        <!-- Детальная статистика -->
         <div class="scan-stats">
-            <strong>📊 Статистика сканирования:</strong>
+            <strong>📊 Детальная статистика:</strong>
             <ul class="stats-list">
                 <li>• Цель: {{ target_url }}</li>
                 <li>• Оценка безопасности: {{ security_score }}%</li>
+                <li>• Уровень риска: {{ risk_level }}</li>
                 <li>• Заголовков проверено: {{ total_headers }}</li>
+                <li>• Настроено: {{ configured_headers }} ({{ "%.1f"|format(configured_headers/total_headers*100) }}%)</li>
                 <li>• Проблем обнаружено: {{ problems_count }}</li>
+                <li>• Сервер: {{ server_info }}</li>
                 <li>• Время сканирования: {{ scan_duration }}</li>
+                {% if redirects %}
+                <li>• 🔄 Произошли редиректы</li>
+                {% endif %}
             </ul>
         </div>
     </div>
@@ -522,11 +626,11 @@
             }
         }
 
-        // Автоматически открываем первый аккордеон с проблемами
+        // Автоматически открываем первый аккордеон
         document.addEventListener('DOMContentLoaded', function() {
-            const firstProblem = document.querySelector('.accordion-item');
-            if (firstProblem) {
-                firstProblem.classList.add('active');
+            const firstHeader = document.querySelector('.accordion-item');
+            if (firstHeader) {
+                firstHeader.classList.add('active');
             }
         });
     </script>
