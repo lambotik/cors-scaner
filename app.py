@@ -30,7 +30,8 @@ def format_results_for_template(results):
         'configured_headers': results.get('present_headers', 0),
         'problems_count': len(cleaned_problems),
         'scan_duration': f"{results.get('scan_duration', 0):.2f}s",
-        'problems': cleaned_problems,  # Используем очищенные проблемы
+        'problems': cleaned_problems,
+        'cors_analysis': results.get('cors_analysis', {}),
         'final_recommendation': {
             'title': '🚨 Требуется внимание к настройкам безопасности!' if results.get('security_score',
                                                                                       0) < 70 else '✅ Безопасность на хорошем уровне',

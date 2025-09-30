@@ -304,6 +304,43 @@
             </div>
         </div>
 
+    <!-- Добавь после секции CORS -->
+    {% if cors_analysis %}
+    <div class="section">
+        <div class="section-header">
+            <span>🔍</span>
+            <h3>Детальный CORS Анализ</h3>
+        </div>
+
+        {% if cors_analysis.simple_request %}
+        <div class="cors-test">
+            <h4>📤 Простые CORS запросы</h4>
+            {% for origin, headers in cors_analysis.simple_request.items() %}
+            <div class="cors-result">
+                <strong>Origin: {{ origin }}</strong>
+                <div class="header-value">
+                    {% for key, value in headers.items() %}
+                    {{ key }}: {{ value }}<br>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if cors_analysis.preflight_request %}
+        <div class="cors-test">
+            <h4>📥 Preflight запросы (OPTIONS)</h4>
+            <div class="header-value">
+                {% for key, value in cors_analysis.preflight_request.items() %}
+                {{ key }}: {{ value }}<br>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
         <!-- Секция Безопасности -->
         <div class="section">
             <div class="section-header">
