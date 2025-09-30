@@ -15,11 +15,15 @@ def format_results_for_template(results):
     # Очищаем проблемы от лишних символов но сохраняем эмодзи
     cleaned_problems = []
     for problem in results.get('issues', []):
-        # Убираем только лишние префиксы, но сохраняем эмодзи
         cleaned = problem.replace("X-", "").replace("A.", "").strip()
-        # Убираем двойные пробелы
         cleaned = ' '.join(cleaned.split())
         cleaned_problems.append(cleaned)
+
+    # Очищаем рекомендации
+    cleaned_recommendations = []
+    for rec in results.get('recommendations', []):
+        cleaned_rec = rec.strip()
+        cleaned_recommendations.append(cleaned_rec)
 
     # Базовая структура
     formatted = {
@@ -30,16 +34,18 @@ def format_results_for_template(results):
         'configured_headers': results.get('present_headers', 0),
         'problems_count': len(cleaned_problems),
         'scan_duration': f"{results.get('scan_duration', 0):.2f}s",
+        'risk_level': results.get('risk_level', 'Неизвестен'),
+        'server_info': results.get('server_info', 'Не указан'),
+        'redirects': results.get('redirects', False),
+        'http_status': results.get('http_status', 0),
         'problems': cleaned_problems,
+        'recommendations': cleaned_recommendations,
         'cors_analysis': results.get('cors_analysis', {}),
-        'final_recommendation': {
-            'title': '🚨 Требуется внимание к настройкам безопасности!' if results.get('security_score',
-                                                                                      0) < 70 else '✅ Безопасность на хорошем уровне',
-            'description': 'Рекомендуется настроить отсутствующие заголовки безопасности.'
-        }
+        'scan_details': results.get('scan_details', {}),
+        'final_recommendation': generate_final_recommendation(results)
     }
 
-    # Группируем заголовки по разделам
+    # Группируем заголовки по разделам с улучшенной структурой
     headers_data = {
         'cors': [],
         'security': [],
@@ -59,55 +65,47 @@ def format_results_for_template(results):
     # Обрабатываем каждый заголовок из результатов
     for header_info in results.get('headers', []):
         header_name = header_info.get('name', '')
-        is_present = header_info.get('present', False)
-        header_value = header_info.get('value', '')
 
-        # Определяем статус и риск
-        status = 'present' if is_present else 'missing'
-        risk_level = 'low'
-        risk_text = 'Низкий риск'
+        # Определяем статус для нового шаблона
+        status = 'present' if header_info.get('present', False) else 'missing'
 
-        if header_info.get('critical', False):
-            risk_level = 'medium' if is_present else 'high'
-            risk_text = 'Средний риск' if is_present else 'Высокий риск'
-
-        # Формируем описание заголовка
-        descriptions = {
-            'Content-Security-Policy': 'Защита от XSS и внедрения кода',
-            'Strict-Transport-Security': 'Принудительное использование HTTPS',
-            'X-Frame-Options': 'Защита от clickjacking',
-            'X-Content-Type-Options': 'Блокировка MIME-sniffing',
-            'X-XSS-Protection': 'Защита от XSS (устаревшая)',
-            'Referrer-Policy': 'Контроль утечки referrer данных',
-            'Permissions-Policy': 'Управление доступом к API браузера',
-            'Access-Control-Allow-Origin': 'CORS политика - разрешенные домены',
-            'Access-Control-Allow-Methods': 'CORS разрешенные методы',
-            'Access-Control-Allow-Headers': 'CORS разрешенные заголовки',
-            'Access-Control-Allow-Credentials': 'CORS передача учетных данных'
-        }
-
-        description = descriptions.get(header_name, 'Security header')
-
-        # Формируем заметки
-        notes = []
-        if is_present:
-            notes.append({'type': 'success', 'text': '✅ Заголовок настроен'})
-            if header_value and '*' in header_value and 'Access-Control-Allow-Origin' in header_name:
-                notes.append({'type': 'warning', 'text': '⚠️ CORS открыт для всех доменов'})
-        else:
-            if header_info.get('critical', False):
-                notes.append({'type': 'warning', 'text': '⚠️ Критический заголовок отсутствует'})
-            notes.append({'type': 'info', 'text': '💡 Рекомендация: Необходимо добавить этот заголовок'})
-
+        # Создаем улучшенную структуру заголовка
         header_data = {
             'name': header_name,
             'status': status,
-            'risk_level': risk_level,
-            'risk_text': risk_text,
-            'description': description,
-            'value': header_value,
-            'notes': notes
+            'risk_level': header_info.get('risk_level', 'low').lower(),
+            'risk_text': header_info.get('risk_level', 'Низкий риск'),
+            'description': header_info.get('description', ''),
+            'risk_description': header_info.get('risk_description', ''),
+            'recommendation': header_info.get('recommendation', ''),
+            'value': header_info.get('value', ''),
+            'quality_score': header_info.get('quality_score', 0),
+            'critical': header_info.get('critical', False),
+            'notes': []
         }
+
+        # Добавляем заметки из анализа
+        for note in header_info.get('notes', []):
+            header_data['notes'].append({'type': 'success', 'text': note})
+
+        for issue in header_info.get('issues', []):
+            header_data['notes'].append({'type': 'warning', 'text': issue})
+
+        for rec in header_info.get('recommendations', []):
+            header_data['notes'].append({'type': 'info', 'text': rec})
+
+        # Если заголовок отсутствует, добавляем соответствующую заметку
+        if not header_info.get('present', False):
+            if header_info.get('critical', False):
+                header_data['notes'].append({
+                    'type': 'warning',
+                    'text': f'❌ Критический заголовок отсутствует: {header_info.get("risk_description", "")}'
+                })
+            else:
+                header_data['notes'].append({
+                    'type': 'info',
+                    'text': f'💡 Рекомендация: {header_info.get("recommendation", "")}'
+                })
 
         # Распределяем по категориям
         if header_name in cors_headers:
@@ -121,6 +119,45 @@ def format_results_for_template(results):
 
     formatted['headers'] = headers_data
     return formatted
+
+
+def generate_final_recommendation(results):
+    """
+    Генерирует итоговую рекомендацию на основе результатов сканирования
+    """
+    score = results.get('security_score', 0)
+    risk_level = results.get('risk_level', 'Неизвестен')
+
+    if score >= 90:
+        return {
+            'title': '✅ Отличная безопасность!',
+            'description': 'Все критически важные заголовки настроены правильно. Рекомендуется регулярный мониторинг.',
+            'level': 'success'
+        }
+    elif score >= 70:
+        return {
+            'title': '🟡 Хорошая безопасность',
+            'description': 'Основные заголовки настроены. Рекомендуется улучшить настройки второстепенных заголовков.',
+            'level': 'warning'
+        }
+    elif score >= 50:
+        return {
+            'title': '🟠 Требует улучшений',
+            'description': 'Отсутствуют некоторые важные заголовки. Рекомендуется срочно настроить недостающие заголовки безопасности.',
+            'level': 'warning'
+        }
+    elif score >= 30:
+        return {
+            'title': '🔴 Высокий риск',
+            'description': 'Отсутствуют критические заголовки безопасности. Немедленно настройте CSP, HSTS и X-Frame-Options.',
+            'level': 'danger'
+        }
+    else:
+        return {
+            'title': '🚨 Критический риск!',
+            'description': 'Сайт крайне уязвим. Требуется немедленная настройка всех заголовков безопасности.',
+            'level': 'critical'
+        }
 
 
 # Маршрут для favicon
